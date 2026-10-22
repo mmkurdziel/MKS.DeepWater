@@ -1,0 +1,11 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# Plikowa baza danych SQLite (tworzona automatycznie przy starcie)
+App_Data/
+*.db
+*.db-shm
+*.db-wal

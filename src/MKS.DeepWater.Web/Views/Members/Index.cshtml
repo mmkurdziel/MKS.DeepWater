@@ -1,0 +1,99 @@
+@model MemberListViewModel
+@{
+    ViewData["Title"] = "Lista członków";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h4 mb-0">Lista członków</h1>
+    <span class="text-muted small">Liczba rekordów: @Model.TotalCount</span>
+</div>
+
+<form method="get" class="row g-2 align-items-end mb-3">
+    <div class="col-sm-4">
+        <label class="form-label small text-muted" for="search">Szukaj (nazwisko, imię, nr)</label>
+        <input id="search" name="search" value="@Model.Search" class="form-control form-control-sm" />
+    </div>
+    <div class="col-sm-3">
+        <label class="form-label small text-muted" for="status">Status</label>
+        <select id="status" name="status" class="form-select form-select-sm">
+            <option value="">— wszystkie —</option>
+            @foreach (var status in Enum.GetValues<MemberStatus>())
+            {
+                <option value="@((int)status)" selected="@(Model.Status == status)">@StatusLabel(status)</option>
+            }
+        </select>
+    </div>
+    <div class="col-sm-2">
+        <label class="form-label small text-muted" for="feeYear">Rok składkowy</label>
+        <input id="feeYear" name="feeYear" type="number" value="@Model.FeeYear" class="form-control form-control-sm" />
+    </div>
+    <div class="col-sm-3">
+        <button type="submit" class="btn btn-sm btn-primary">Filtruj</button>
+        <a class="btn btn-sm btn-link" asp-controller="Members" asp-action="Index">Wyczyść</a>
+    </div>
+</form>
+
+<div class="table-responsive">
+    <table class="table table-sm table-striped align-middle">
+        <thead>
+            <tr>
+                <th>Nr</th>
+                <th>Imię i nazwisko</th>
+                <th>Adres</th>
+                <th>Kontakt</th>
+                <th class="text-center">Udziały</th>
+                <th>Od</th>
+                <th>Status</th>
+                <th class="text-end">Wpłaty @Model.FeeYear</th>
+            </tr>
+        </thead>
+        <tbody>
+        @if (Model.TotalCount == 0)
+        {
+            <tr>
+                <td colspan="8" class="text-center text-muted py-4">Brak członków spełniających kryteria.</td>
+            </tr>
+        }
+        else
+        {
+            @foreach (var member in Model.Items)
+            {
+                <tr>
+                    <td>@member.MembershipNumber</td>
+                    <td>@member.FullName</td>
+                    <td class="small">@member.Address</td>
+                    <td class="small">
+                        @member.PhoneNumber
+                        @if (!string.IsNullOrWhiteSpace(member.Email))
+                        {
+                            <br /><span class="text-muted">@member.Email</span>
+                        }
+                    </td>
+                    <td class="text-center">@member.SharesCount</td>
+                    <td class="small">@member.JoinDate.ToString("yyyy-MM-dd")</td>
+                    <td><span class="badge @StatusCss(member.Status)">@StatusLabel(member.Status)</span></td>
+                    <td class="text-end">@member.PaidInSelectedYear.ToString("N2") zł</td>
+                </tr>
+            }
+        }
+        </tbody>
+    </table>
+</div>
+
+@functions {
+    static string StatusLabel(MemberStatus status) => status switch
+    {
+        MemberStatus.Active => "Aktywny",
+        MemberStatus.Suspended => "Zawieszony",
+        MemberStatus.Former => "Były członek",
+        _ => status.ToString()
+    };
+
+    static string StatusCss(MemberStatus status) => status switch
+    {
+        MemberStatus.Active => "text-bg-success",
+        MemberStatus.Suspended => "text-bg-warning",
+        MemberStatus.Former => "text-bg-secondary",
+        _ => "text-bg-light"
+    };
+}

@@ -1,0 +1,5 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/MKS.DeepWater.Web/MKS.DeepWater.Web.csproj" />
+  </Folder>
+</Solution>

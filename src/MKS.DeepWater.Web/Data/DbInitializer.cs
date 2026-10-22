@@ -1,0 +1,148 @@
+using MKS.DeepWater.Web.Models.Domain;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
+
+namespace MKS.DeepWater.Web.Data;
+
+/// <summary>
+/// Tworzy/aktualizuje plikową bazę SQLite i zakłada konto startowe administratora.
+/// </summary>
+public static class DbInitializer
+{
+    public const string AdminRole = "Administrator";
+    public const string ClerkRole = "Pracownik";
+
+    public static async Task InitializeAsync(IServiceProvider services, IConfiguration configuration)
+    {
+        var db = services.GetRequiredService<ApplicationDbContext>();
+        await db.Database.MigrateAsync();
+
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+        foreach (var role in new[] { AdminRole, ClerkRole })
+        {
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                await roleManager.CreateAsync(new IdentityRole(role));
+            }
+        }
+
+        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+        var login = configuration["SeedAdmin:UserName"] ?? "admin";
+        var password = configuration["SeedAdmin:Password"] ?? "admin";
+
+        var admin = await userManager.FindByNameAsync(login);
+        if (admin is null)
+        {
+            admin = new ApplicationUser
+            {
+                UserName = login,
+                Email = configuration["SeedAdmin:Email"] ?? "admin@localhost",
+                EmailConfirmed = true,
+                FullName = "Administrator systemu"
+            };
+            var result = await userManager.CreateAsync(admin, password);
+            if (!result.Succeeded)
+            {
+                throw new InvalidOperationException(
+                    "Nie udało się utworzyć konta administratora: " +
+                    string.Join("; ", result.Errors.Select(x => x.Description)));
+            }
+        }
+
+        if (!await userManager.IsInRoleAsync(admin, AdminRole))
+        {
+            await userManager.AddToRoleAsync(admin, AdminRole);
+        }
+
+        await SeedDemoMembersAsync(db);
+    }
+
+    private static async Task SeedDemoMembersAsync(ApplicationDbContext db)
+    {
+        if (await db.Members.AnyAsync())
+        {
+            return;
+        }
+
+        var year = DateTime.Today.Year;
+
+        db.FeeRates.Add(new FeeRate
+        {
+            Year = year,
+            AmountPerShare = 240m,
+            ResolutionReference = $"Uchwała nr 1/{year} Zgromadzenia Członków"
+        });
+
+        db.Members.AddRange(
+            new Member
+            {
+                MembershipNumber = "001",
+                FirstName = "Anna",
+                LastName = "Kowalska",
+                Email = "anna.kowalska@example.com",
+                PhoneNumber = "600100200",
+                JoinDate = new DateOnly(year - 5, 3, 12),
+                Status = MemberStatus.Active,
+                SharesCount = 2,
+                Addresses =
+                {
+                    new Address
+                    {
+                        Type = AddressType.Registered,
+                        Street = "Morska", HouseNumber = "14", ApartmentNumber = "3",
+                        PostalCode = "81-001", City = "Gdynia"
+                    }
+                },
+                Payments =
+                {
+                    new FeePayment
+                    {
+                        FeeYear = year, PaymentDate = new DateOnly(year, 1, 20),
+                        Amount = 480m, Method = PaymentMethod.Transfer, DocumentNumber = "WB/1/2026"
+                    }
+                }
+            },
+            new Member
+            {
+                MembershipNumber = "002",
+                FirstName = "Marek",
+                LastName = "Nowak",
+                Email = "marek.nowak@example.com",
+                PhoneNumber = "601300400",
+                JoinDate = new DateOnly(year - 2, 9, 1),
+                Status = MemberStatus.Active,
+                SharesCount = 1,
+                Addresses =
+                {
+                    new Address
+                    {
+                        Type = AddressType.Registered,
+                        Street = "Leśna", HouseNumber = "7",
+                        PostalCode = "80-180", City = "Gdańsk"
+                    }
+                }
+            },
+            new Member
+            {
+                MembershipNumber = "003",
+                FirstName = "Ewa",
+                LastName = "Wiśniewska",
+                PhoneNumber = "602500600",
+                JoinDate = new DateOnly(year - 9, 6, 30),
+                LeaveDate = new DateOnly(year - 1, 12, 31),
+                Status = MemberStatus.Former,
+                SharesCount = 1,
+                Addresses =
+                {
+                    new Address
+                    {
+                        Type = AddressType.Correspondence,
+                        Street = "Polna", HouseNumber = "22",
+                        PostalCode = "84-200", City = "Wejherowo"
+                    }
+                }
+            });
+
+        await db.SaveChangesAsync();
+    }
+}
