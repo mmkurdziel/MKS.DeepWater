@@ -53,6 +53,14 @@ public class Member
     public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
     public DateTimeOffset? UpdatedAt { get; set; }
 
+    /// <summary>Znacznik miękkiego usunięcia - rekord zostaje w bazie i można go przywrócić.</summary>
+    public DateTimeOffset? DeletedAt { get; set; }
+
+    [StringLength(256)]
+    public string? DeletedBy { get; set; }
+
+    public bool IsDeleted => DeletedAt is not null;
+
     public ICollection<Address> Addresses { get; set; } = new List<Address>();
     public ICollection<FeePayment> Payments { get; set; } = new List<FeePayment>();
 

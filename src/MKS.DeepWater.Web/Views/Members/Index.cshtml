@@ -5,8 +5,19 @@
 
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h4 mb-0">Lista członków</h1>
-    <span class="text-muted small">Liczba rekordów: @Model.TotalCount</span>
+    <div class="d-flex align-items-center gap-3">
+        <span class="text-muted small">Liczba rekordów: @Model.TotalCount</span>
+        <a class="btn btn-sm btn-primary" asp-action="Create">Dodaj członka</a>
+    </div>
 </div>
+
+@if (TempData["Message"] is string message)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @message
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Zamknij"></button>
+    </div>
+}
 
 <form method="get" class="row g-2 align-items-end mb-3">
     <div class="col-sm-4">
@@ -19,7 +30,7 @@
             <option value="">— wszystkie —</option>
             @foreach (var status in Enum.GetValues<MemberStatus>())
             {
-                <option value="@((int)status)" selected="@(Model.Status == status)">@StatusLabel(status)</option>
+                <option value="@((int)status)" selected="@(Model.Status == status)">@status.Label()</option>
             }
         </select>
     </div>
@@ -28,8 +39,13 @@
         <input id="feeYear" name="feeYear" type="number" value="@Model.FeeYear" class="form-control form-control-sm" />
     </div>
     <div class="col-sm-3">
+        <div class="form-check mb-2">
+            <input class="form-check-input" type="checkbox" id="showDeleted" name="showDeleted"
+                   value="true" checked="@Model.ShowDeleted" />
+            <label class="form-check-label small" for="showDeleted">pokaż usunięte</label>
+        </div>
         <button type="submit" class="btn btn-sm btn-primary">Filtruj</button>
-        <a class="btn btn-sm btn-link" asp-controller="Members" asp-action="Index">Wyczyść</a>
+        <a class="btn btn-sm btn-link" asp-action="Index">Wyczyść</a>
     </div>
 </form>
 
@@ -45,22 +61,29 @@
                 <th>Od</th>
                 <th>Status</th>
                 <th class="text-end">Wpłaty @Model.FeeYear</th>
+                <th class="text-end"><span class="visually-hidden">Akcje</span></th>
             </tr>
         </thead>
         <tbody>
         @if (Model.TotalCount == 0)
         {
             <tr>
-                <td colspan="8" class="text-center text-muted py-4">Brak członków spełniających kryteria.</td>
+                <td colspan="9" class="text-center text-muted py-4">Brak członków spełniających kryteria.</td>
             </tr>
         }
         else
         {
             @foreach (var member in Model.Items)
             {
-                <tr>
+                <tr class="@(member.IsDeleted ? "table-warning text-muted" : null)">
                     <td>@member.MembershipNumber</td>
-                    <td>@member.FullName</td>
+                    <td>
+                        @member.FullName
+                        @if (member.IsDeleted)
+                        {
+                            <span class="badge text-bg-danger ms-1">Usunięty</span>
+                        }
+                    </td>
                     <td class="small">@member.Address</td>
                     <td class="small">
                         @member.PhoneNumber
@@ -71,8 +94,36 @@
                     </td>
                     <td class="text-center">@member.SharesCount</td>
                     <td class="small">@member.JoinDate.ToString("yyyy-MM-dd")</td>
-                    <td><span class="badge @StatusCss(member.Status)">@StatusLabel(member.Status)</span></td>
+                    <td><span class="badge @member.Status.BadgeCss()">@member.Status.Label()</span></td>
                     <td class="text-end">@member.PaidInSelectedYear.ToString("N2") zł</td>
+                    <td class="text-end">
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-light border-0 px-2 py-0 lh-1" type="button"
+                                    data-bs-toggle="dropdown" data-bs-boundary="viewport"
+                                    aria-expanded="false" aria-label="Akcje dla @member.FullName">
+                                <span class="fs-5">&#8942;</span>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                @if (member.IsDeleted)
+                                {
+                                    <li>
+                                        <form asp-action="Restore" asp-route-id="@member.Id" method="post">
+                                            <button type="submit" class="dropdown-item">Przywróć</button>
+                                        </form>
+                                    </li>
+                                }
+                                else
+                                {
+                                    <li>
+                                        <a class="dropdown-item" asp-action="Edit" asp-route-id="@member.Id">Edytuj</a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" asp-action="Delete" asp-route-id="@member.Id">Usuń</a>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    </td>
                 </tr>
             }
         }
@@ -80,20 +131,10 @@
     </table>
 </div>
 
-@functions {
-    static string StatusLabel(MemberStatus status) => status switch
-    {
-        MemberStatus.Active => "Aktywny",
-        MemberStatus.Suspended => "Zawieszony",
-        MemberStatus.Former => "Były członek",
-        _ => status.ToString()
-    };
-
-    static string StatusCss(MemberStatus status) => status switch
-    {
-        MemberStatus.Active => "text-bg-success",
-        MemberStatus.Suspended => "text-bg-warning",
-        MemberStatus.Former => "text-bg-secondary",
-        _ => "text-bg-light"
-    };
+@if (Model.ShowDeleted)
+{
+    <p class="small text-muted">
+        Rekordy oznaczone jako <span class="badge text-bg-danger">Usunięty</span> pozostają w bazie –
+        akcja <em>Przywróć</em> cofa usunięcie.
+    </p>
 }

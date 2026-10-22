@@ -72,12 +72,14 @@ src/MKS.DeepWater.Web/
     ErrorViewModel.cs
   Controllers/
     AccountController.cs     # logowanie / wylogowanie / brak dostępu
-    MembersController.cs     # lista członków z filtrowaniem
+    MembersController.cs     # lista + CRUD członków, miękkie usuwanie i przywracanie
     HomeController.cs        # przekierowanie na listę + strona błędu
   Views/
     Shared/_Layout.cshtml    # szablon z zakładką "Lista członków"
     Account/Login.cshtml     # strona logowania
-    Members/Index.cshtml     # lista członków
+    Members/Index.cshtml     # lista członków z menu akcji w wierszu
+    Members/_MemberForm.cshtml  # wspólny formularz dla dodawania i edycji
+    Members/Create.cshtml, Edit.cshtml, Delete.cshtml
   wwwroot/                   # Bootstrap, jQuery, CSS
 ```
 
@@ -85,7 +87,7 @@ src/MKS.DeepWater.Web/
 
 - **Member** – numer członkowski (unikalny), imię, nazwisko, PESEL, e-mail, telefon,
   data urodzenia, data przyjęcia/ustania członkostwa, status (aktywny / zawieszony / były),
-  liczba udziałów, uwagi.
+  liczba udziałów, uwagi oraz znaczniki `DeletedAt` / `DeletedBy` (miękkie usuwanie).
 - **Address** – adres przypisany do członka; rodzaj: zameldowania / korespondencyjny / inny
   (ulica, nr domu, nr lokalu, kod pocztowy, miejscowość, kraj).
 - **FeePayment** – wpłata składki: rok składkowy, data wpłaty, kwota, forma (przelew/gotówka/karta),
@@ -94,6 +96,19 @@ src/MKS.DeepWater.Web/
 
 Relacje: `Member 1—* Address`, `Member 1—* FeePayment` (kaskadowe usuwanie).
 
+### Miękkie usuwanie
+
+Usunięcie członka ustawia `DeletedAt` i `DeletedBy` – wiersz, jego adresy i wpłaty zostają
+w bazie. Globalny filtr zapytań (`HasQueryFilter`) na `Member`, `Address` i `FeePayment`
+sprawia, że usunięte dane nie pojawiają się w żadnym zwykłym zapytaniu; lista pokazuje je
+dopiero z filtrem „pokaż usunięte" (`IgnoreQueryFilters()`), skąd można je przywrócić.
+
+`DeletedAt` to wycofanie rekordu z ewidencji i nie ma nic wspólnego ze statusem
+`MemberStatus.Former` („były członek"), który opisuje stan członkostwa.
+
+Numer członkowski jest unikalny także wśród usuniętych rekordów – przy dodawaniu zajęty
+numer zwraca błąd walidacji zamiast wyjątku z indeksu bazy.
+
 ## Stan realizacji
 
 Zrealizowane (definition of done):
@@ -101,10 +116,13 @@ Zrealizowane (definition of done):
 - cała aplikacja wymaga zalogowania, anonim jest przekierowany na `/Account/Login`,
 - logowanie kontem startowym (`SeedAdmin`) działa,
 - po zalogowaniu widoczny szablon z jedną zakładką **Lista członków** (dane z bazy,
-  filtr: szukaj / status / rok składkowy, kolumna wpłat za wybrany rok).
+  filtr: szukaj / status / rok składkowy / pokaż usunięte, kolumna wpłat za wybrany rok),
+- CRUD członków: dodawanie i edycja (dane członka wraz z adresem zameldowania),
+  miękkie usuwanie ze strony potwierdzenia i przywracanie – akcje dostępne z menu
+  „trzykropek" w wierszu listy.
 
 Kolejne kroki (model danych i baza są już przygotowane):
-- CRUD członków (dodawanie, edycja, karta członka z adresami),
+- karta członka z wieloma adresami (korespondencyjny i inne),
 - rejestracja wpłat składek i zestawienie wpłat dla członka,
 - raporty: zaległości składkowe za rok (na podstawie `FeeRate` i `SharesCount`),
   lista adresowa do korespondencji, eksport do CSV/XLSX,

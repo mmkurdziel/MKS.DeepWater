@@ -1,4 +1,12 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
-
-// Write your JavaScript code.
+// Menu akcji (trzykropek) stoi w komórce tabeli opakowanej w .table-responsive,
+// czyli w kontenerze z overflow-x. Domyślne pozycjonowanie absolutne powoduje,
+// że rozwinięte menu jest przez ten kontener obcinane - strategia "fixed"
+// wyrywa je z przewijanego obszaru.
+document.addEventListener('DOMContentLoaded', function () {
+    var toggles = document.querySelectorAll('.table-responsive [data-bs-toggle="dropdown"]');
+    Array.prototype.forEach.call(toggles, function (toggle) {
+        bootstrap.Dropdown.getOrCreateInstance(toggle, {
+            popperConfig: { strategy: 'fixed' }
+        });
+    });
+});

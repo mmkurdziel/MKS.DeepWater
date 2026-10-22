@@ -1,0 +1,60 @@
+@model Member
+@{
+    ViewData["Title"] = "Usunięcie członka";
+    var address = Model.Addresses.OrderBy(a => a.Type).FirstOrDefault();
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a asp-action="Index">Lista członków</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Usunięcie</li>
+    </ol>
+</nav>
+
+<div class="row">
+    <div class="col-lg-7">
+        <h1 class="h4 mb-3">Usunąć tego członka z ewidencji?</h1>
+
+        <div class="alert alert-warning" role="alert">
+            Usunięcie jest <strong>miękkie</strong> – dane członka, jego adresy i wpłaty składek
+            zostają w bazie, a rekord znika tylko z listy. Można go przywrócić akcją
+            <em>Przywróć</em> po zaznaczeniu filtra „pokaż usunięte”.
+        </div>
+
+        <dl class="row">
+            <dt class="col-sm-4">Numer członkowski</dt>
+            <dd class="col-sm-8">@Model.MembershipNumber</dd>
+
+            <dt class="col-sm-4">Imię i nazwisko</dt>
+            <dd class="col-sm-8">@Model.FullName</dd>
+
+            <dt class="col-sm-4">Status</dt>
+            <dd class="col-sm-8">
+                <span class="badge @Model.Status.BadgeCss()">@Model.Status.Label()</span>
+            </dd>
+
+            <dt class="col-sm-4">Data przyjęcia</dt>
+            <dd class="col-sm-8">@Model.JoinDate.ToString("yyyy-MM-dd")</dd>
+
+            <dt class="col-sm-4">Liczba udziałów</dt>
+            <dd class="col-sm-8">@Model.SharesCount</dd>
+
+            <dt class="col-sm-4">Adres</dt>
+            <dd class="col-sm-8">@(address?.SingleLine ?? "—")</dd>
+
+            <dt class="col-sm-4">Kontakt</dt>
+            <dd class="col-sm-8">
+                @(Model.PhoneNumber ?? "—")
+                @if (!string.IsNullOrWhiteSpace(Model.Email))
+                {
+                    <br />@Model.Email
+                }
+            </dd>
+        </dl>
+
+        <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-flex gap-2">
+            <button type="submit" class="btn btn-danger">Usuń członka</button>
+            <a class="btn btn-outline-secondary" asp-action="Index">Anuluj</a>
+        </form>
+    </div>
+</div>

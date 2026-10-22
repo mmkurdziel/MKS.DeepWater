@@ -1,0 +1,123 @@
+@model MemberFormViewModel
+
+<input type="hidden" asp-for="Id" />
+<div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+<div class="row g-4">
+    <div class="col-lg-7">
+        <h2 class="h6 text-muted mb-3">Dane członka</h2>
+        <div class="row g-3">
+            <div class="col-sm-4">
+                <label asp-for="MembershipNumber" class="form-label"></label>
+                <input asp-for="MembershipNumber" class="form-control" />
+                <span asp-validation-for="MembershipNumber" class="text-danger small"></span>
+            </div>
+            <div class="col-sm-4">
+                <label asp-for="FirstName" class="form-label"></label>
+                <input asp-for="FirstName" class="form-control" />
+                <span asp-validation-for="FirstName" class="text-danger small"></span>
+            </div>
+            <div class="col-sm-4">
+                <label asp-for="LastName" class="form-label"></label>
+                <input asp-for="LastName" class="form-control" />
+                <span asp-validation-for="LastName" class="text-danger small"></span>
+            </div>
+
+            <div class="col-sm-4">
+                <label asp-for="NationalId" class="form-label"></label>
+                <input asp-for="NationalId" class="form-control" inputmode="numeric" />
+                <span asp-validation-for="NationalId" class="text-danger small"></span>
+            </div>
+            <div class="col-sm-4">
+                <label asp-for="BirthDate" class="form-label"></label>
+                <input asp-for="BirthDate" class="form-control" />
+                <span asp-validation-for="BirthDate" class="text-danger small"></span>
+            </div>
+            <div class="col-sm-4">
+                <label asp-for="SharesCount" class="form-label"></label>
+                <input asp-for="SharesCount" class="form-control" />
+                <span asp-validation-for="SharesCount" class="text-danger small"></span>
+            </div>
+
+            <div class="col-sm-6">
+                <label asp-for="Email" class="form-label"></label>
+                <input asp-for="Email" class="form-control" />
+                <span asp-validation-for="Email" class="text-danger small"></span>
+            </div>
+            <div class="col-sm-6">
+                <label asp-for="PhoneNumber" class="form-label"></label>
+                <input asp-for="PhoneNumber" class="form-control" />
+                <span asp-validation-for="PhoneNumber" class="text-danger small"></span>
+            </div>
+
+            <div class="col-sm-4">
+                <label asp-for="JoinDate" class="form-label"></label>
+                <input asp-for="JoinDate" class="form-control" />
+                <span asp-validation-for="JoinDate" class="text-danger small"></span>
+            </div>
+            <div class="col-sm-4">
+                <label asp-for="LeaveDate" class="form-label"></label>
+                <input asp-for="LeaveDate" class="form-control" />
+                <span asp-validation-for="LeaveDate" class="text-danger small"></span>
+            </div>
+            <div class="col-sm-4">
+                <label asp-for="Status" class="form-label"></label>
+                <select asp-for="Status" class="form-select">
+                    @foreach (var status in Enum.GetValues<MemberStatus>())
+                    {
+                        <option value="@((int)status)" selected="@(Model.Status == status)">@status.Label()</option>
+                    }
+                </select>
+                <span asp-validation-for="Status" class="text-danger small"></span>
+            </div>
+
+            <div class="col-12">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Notes" class="text-danger small"></span>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <h2 class="h6 text-muted mb-3">Adres zameldowania</h2>
+        <p class="small text-muted">Adres można pominąć, ale wpisany musi być kompletny.</p>
+        <div class="row g-3">
+            <div class="col-12">
+                <label asp-for="Street" class="form-label"></label>
+                <input asp-for="Street" class="form-control" />
+                <span asp-validation-for="Street" class="text-danger small"></span>
+            </div>
+            <div class="col-6">
+                <label asp-for="HouseNumber" class="form-label"></label>
+                <input asp-for="HouseNumber" class="form-control" />
+                <span asp-validation-for="HouseNumber" class="text-danger small"></span>
+            </div>
+            <div class="col-6">
+                <label asp-for="ApartmentNumber" class="form-label"></label>
+                <input asp-for="ApartmentNumber" class="form-control" />
+                <span asp-validation-for="ApartmentNumber" class="text-danger small"></span>
+            </div>
+            <div class="col-5">
+                <label asp-for="PostalCode" class="form-label"></label>
+                <input asp-for="PostalCode" class="form-control" placeholder="00-000" />
+                <span asp-validation-for="PostalCode" class="text-danger small"></span>
+            </div>
+            <div class="col-7">
+                <label asp-for="City" class="form-label"></label>
+                <input asp-for="City" class="form-control" />
+                <span asp-validation-for="City" class="text-danger small"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="Country" class="form-label"></label>
+                <input asp-for="Country" class="form-control" />
+                <span asp-validation-for="Country" class="text-danger small"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4 d-flex gap-2">
+    <button type="submit" class="btn btn-primary">@(Model.IsNew ? "Dodaj członka" : "Zapisz zmiany")</button>
+    <a class="btn btn-outline-secondary" asp-action="Index">Anuluj</a>
+</div>

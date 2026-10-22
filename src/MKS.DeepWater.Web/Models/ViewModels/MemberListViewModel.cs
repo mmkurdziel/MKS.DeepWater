@@ -7,6 +7,7 @@ public class MemberListViewModel
     public string? Search { get; set; }
     public MemberStatus? Status { get; set; }
     public int FeeYear { get; set; }
+    public bool ShowDeleted { get; set; }
     public IReadOnlyList<MemberListItem> Items { get; init; } = Array.Empty<MemberListItem>();
     public int TotalCount => Items.Count;
 }
@@ -23,4 +24,6 @@ public class MemberListItem
     public int SharesCount { get; init; }
     public DateOnly JoinDate { get; init; }
     public decimal PaidInSelectedYear { get; init; }
+    public DateTimeOffset? DeletedAt { get; init; }
+    public bool IsDeleted => DeletedAt is not null;
 }

@@ -1,0 +1,21 @@
+@model MemberFormViewModel
+@{
+    ViewData["Title"] = "Nowy członek";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb small">
+        <li class="breadcrumb-item"><a asp-action="Index">Lista członków</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Nowy członek</li>
+    </ol>
+</nav>
+
+<h1 class="h4 mb-4">Nowy członek</h1>
+
+<form asp-action="Create" method="post">
+    <partial name="_MemberForm" model="Model" />
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
