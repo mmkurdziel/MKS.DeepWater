@@ -3,6 +3,7 @@ using MKS.DeepWater.Web.Models.Domain;
 using MKS.DeepWater.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
 namespace MKS.DeepWater.Web.Controllers;
@@ -10,7 +11,8 @@ namespace MKS.DeepWater.Web.Controllers;
 [Authorize]
 public class MembersController : Controller
 {
-    private const AddressType PrimaryAddressType = AddressType.Registered;
+    /// <summary>Typ nadawany adresowi zakładanemu z formularza.</summary>
+    private const AddressType DefaultAddressType = AddressType.Registered;
 
     private readonly ApplicationDbContext _db;
 
@@ -87,7 +89,10 @@ public class MembersController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(MemberFormViewModel form)
     {
-        await ValidateMembershipNumberAsync(form);
+        ValidateRules(form);
+        // Nowy rekord nie może wykluczać z kontroli unikalności żadnego Id - Id z formularza
+        // przychodzi od klienta i wskazanie nim istniejącego członka obeszłoby walidację.
+        await ValidateMembershipNumberAsync(form.MembershipNumber, excludeId: 0);
         if (!ModelState.IsValid)
         {
             return View(form);
@@ -96,7 +101,11 @@ public class MembersController : Controller
         var member = new Member();
         Apply(form, member);
         _db.Members.Add(member);
-        await _db.SaveChangesAsync();
+
+        if (!await TrySaveAsync())
+        {
+            return View(form);
+        }
 
         TempData["Message"] = $"Dodano członka {member.FullName} (nr {member.MembershipNumber}).";
         return RedirectToAction(nameof(Index));
@@ -135,7 +144,8 @@ public class MembersController : Controller
             return NotFound();
         }
 
-        await ValidateMembershipNumberAsync(form);
+        ValidateRules(form);
+        await ValidateMembershipNumberAsync(form.MembershipNumber, excludeId: id);
         if (!ModelState.IsValid)
         {
             return View(form);
@@ -143,7 +153,11 @@ public class MembersController : Controller
 
         Apply(form, member);
         member.UpdatedAt = DateTimeOffset.UtcNow;
-        await _db.SaveChangesAsync();
+
+        if (!await TrySaveAsync())
+        {
+            return View(form);
+        }
 
         TempData["Message"] = $"Zapisano zmiany dla {member.FullName}.";
         return RedirectToAction(nameof(Index));
@@ -188,7 +202,7 @@ public class MembersController : Controller
             .IgnoreQueryFilters()
             .FirstOrDefaultAsync(m => m.Id == id);
 
-        if (member is null)
+        if (member is null || member.DeletedAt is null)
         {
             return NotFound();
         }
@@ -202,29 +216,76 @@ public class MembersController : Controller
         return RedirectToAction(nameof(Index), new { showDeleted = true });
     }
 
-    /// <summary>Numer członkowski jest unikalny także wśród usuniętych rekordów.</summary>
-    private async Task ValidateMembershipNumberAsync(MemberFormViewModel form)
+    /// <summary>
+    /// Numer członkowski jest unikalny także wśród usuniętych rekordów.
+    /// <paramref name="excludeId"/> pochodzi z serwera (0 dla nowego rekordu, Id z trasy przy edycji).
+    /// </summary>
+    private async Task ValidateMembershipNumberAsync(string? membershipNumber, int excludeId)
     {
-        if (string.IsNullOrWhiteSpace(form.MembershipNumber))
+        if (string.IsNullOrWhiteSpace(membershipNumber))
         {
             return;
         }
 
-        var number = form.MembershipNumber.Trim();
+        var number = membershipNumber.Trim();
         var taken = await _db.Members
             .IgnoreQueryFilters()
-            .AnyAsync(m => m.MembershipNumber == number && m.Id != form.Id);
+            .AnyAsync(m => m.MembershipNumber == number && m.Id != excludeId);
 
         if (taken)
         {
-            ModelState.AddModelError(nameof(form.MembershipNumber),
-                "Ten numer członkowski jest już zajęty (sprawdź także usunięte rekordy).");
+            AddMembershipNumberTakenError();
         }
     }
 
+    /// <summary>Reguły obejmujące kilka pól - uruchamiane zawsze, niezależnie od błędów pojedynczych pól.</summary>
+    private void ValidateRules(MemberFormViewModel form)
+    {
+        foreach (var violation in form.GetRuleViolations())
+        {
+            foreach (var field in violation.MemberNames.DefaultIfEmpty(string.Empty))
+            {
+                ModelState.AddModelError(field, violation.ErrorMessage!);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Zapis z obsługą kolizji unikalnego numeru - wyścig dwóch osób wpisujących ten sam numer
+    /// kończy się błędem walidacji, a nie wyjątkiem z indeksu bazy.
+    /// </summary>
+    private async Task<bool> TrySaveAsync()
+    {
+        try
+        {
+            await _db.SaveChangesAsync();
+            return true;
+        }
+        catch (DbUpdateException ex) when (IsMembershipNumberConflict(ex))
+        {
+            AddMembershipNumberTakenError();
+            return false;
+        }
+    }
+
+    private static bool IsMembershipNumberConflict(DbUpdateException ex) =>
+        ex.InnerException is SqliteException { SqliteErrorCode: 19 } sqlite &&
+        sqlite.Message.Contains("Members.MembershipNumber", StringComparison.OrdinalIgnoreCase);
+
+    private void AddMembershipNumberTakenError() =>
+        ModelState.AddModelError(nameof(MemberFormViewModel.MembershipNumber),
+            "Ten numer członkowski jest już zajęty (sprawdź także usunięte rekordy).");
+
+    /// <summary>
+    /// Adres pokazywany na liście i obsługiwany przez formularz - ten sam wybór w obu miejscach,
+    /// żeby edycja nie pomijała adresu innego typu niż zameldowania.
+    /// </summary>
+    private static Address? PrimaryAddress(Member member) =>
+        member.Addresses.OrderBy(a => a.Type).FirstOrDefault();
+
     private static MemberFormViewModel ToForm(Member member)
     {
-        var address = member.Addresses.FirstOrDefault(a => a.Type == PrimaryAddressType);
+        var address = PrimaryAddress(member);
 
         return new MemberFormViewModel
         {
@@ -270,7 +331,7 @@ public class MembersController : Controller
 
     private void ApplyAddress(MemberFormViewModel form, Member member)
     {
-        var address = member.Addresses.FirstOrDefault(a => a.Type == PrimaryAddressType);
+        var address = PrimaryAddress(member);
 
         if (!form.HasAddress)
         {
@@ -284,7 +345,7 @@ public class MembersController : Controller
 
         if (address is null)
         {
-            address = new Address { Type = PrimaryAddressType };
+            address = new Address { Type = DefaultAddressType };
             member.Addresses.Add(address);
         }
 
