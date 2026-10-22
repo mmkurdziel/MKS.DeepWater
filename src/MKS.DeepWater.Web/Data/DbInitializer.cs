@@ -27,16 +27,28 @@ public static class DbInitializer
         }
 
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-        var login = configuration["SeedAdmin:UserName"] ?? "admin";
-        var password = configuration["SeedAdmin:Password"] ?? "admin";
+        var login = Value(configuration["SeedAdmin:UserName"], "admin");
 
         var admin = await userManager.FindByNameAsync(login);
         if (admin is null)
         {
+            // Hasło jest wymagane tylko wtedy, gdy konto trzeba utworzyć - kolejne starty
+            // działają bez niego, więc usunięcie sekretu nie wywraca uruchomionej instancji.
+            var password = configuration["SeedAdmin:Password"];
+            if (string.IsNullOrWhiteSpace(password))
+            {
+                throw new InvalidOperationException(
+                    $"Brak hasła dla zakładanego konta startowego \"{login}\". " +
+                    "Ustaw SeedAdmin:Password poza repozytorium - lokalnie: " +
+                    "dotnet user-secrets set \"SeedAdmin:Password\" \"<haslo>\" " +
+                    "(projekt src/MKS.DeepWater.Web), na serwerze: zmienna środowiskowa " +
+                    "SeedAdmin__Password.");
+            }
+
             admin = new ApplicationUser
             {
                 UserName = login,
-                Email = configuration["SeedAdmin:Email"] ?? "admin@localhost",
+                Email = Value(configuration["SeedAdmin:Email"], "admin@localhost"),
                 EmailConfirmed = true,
                 FullName = "Administrator systemu"
             };
@@ -56,6 +68,10 @@ public static class DbInitializer
 
         await SeedDemoMembersAsync(db);
     }
+
+    /// <summary>Wartość z konfiguracji albo domyślna - puste ustawienie traktujemy jak brak.</summary>
+    private static string Value(string? configured, string fallback) =>
+        string.IsNullOrWhiteSpace(configured) ? fallback : configured;
 
     private static async Task SeedDemoMembersAsync(ApplicationDbContext db)
     {

@@ -22,12 +22,37 @@ dotnet run --project src/MKS.DeepWater.Web
 Przy pierwszym starcie aplikacja sama:
 1. tworzy plik bazy `src/MKS.DeepWater.Web/App_Data/deepwater.db` i wykonuje migracje,
 2. zakłada role `Administrator` i `Pracownik`,
-3. zakłada konto startowe **admin / admin**,
+3. zakłada konto startowe administratora na podstawie konfiguracji `SeedAdmin`,
 4. wpisuje 3 przykładowych członków z adresami i jedną wpłatą składki.
 
-Konto startowe można zmienić w `appsettings.json` (sekcja `SeedAdmin`) **przed** pierwszym
-uruchomieniem. Hasło `admin` wymaga poluzowanej polityki haseł – ustawienia znajdują się
-w `Program.cs` i przed wdrożeniem produkcyjnym należy je zaostrzyć.
+### Konto startowe (SeedAdmin)
+
+Dane konta startowego **nie są trzymane w repozytorium**. Hasło trzeba podać przed pierwszym
+uruchomieniem – gdy konta jeszcze nie ma, a `SeedAdmin:Password` nie jest ustawione, aplikacja
+przerywa start z komunikatem, jak je ustawić. Kolejne starty hasła już nie wymagają (konto
+istnieje), więc usunięcie sekretu nie wywraca działającej instancji.
+
+Lokalnie – user-secrets (ładowane tylko w środowisku `Development`):
+
+```bash
+cd src/MKS.DeepWater.Web
+dotnet user-secrets set "SeedAdmin:UserName" "admin"
+dotnet user-secrets set "SeedAdmin:Password" "<haslo>"
+dotnet user-secrets set "SeedAdmin:Email" "admin@localhost"
+```
+
+Na serwerze – zmienne środowiskowe: `SeedAdmin__UserName`, `SeedAdmin__Password`,
+`SeedAdmin__Email`.
+
+Hasło musi spełniać politykę Identity z `Program.cs`: min. 8 znaków, wielka i mała litera,
+cyfra, znak specjalny, min. 4 różne znaki. Polityka jest sprawdzana przy zakładaniu konta
+i przy zmianie hasła – jej zaostrzenie **nie unieważnia haseł już zapisanych w bazie**.
+
+Konto zakładane jest tylko wtedy, gdy nie istnieje, więc zmiana `SeedAdmin:Password` nie
+podmienia hasła istniejącemu kontu. Aplikacja nie ma jeszcze ekranu zmiany hasła
+(patrz „Kolejne kroki”), dlatego jedyny sposób wymiany hasła konta startowego to usunięcie
+plików `App_Data/deepwater.db*` i odtworzenie bazy od nowa – razem z danymi. Bazę założoną
+starym, słabym hasłem trzeba odtworzyć ręcznie.
 
 ## Struktura projektu
 
@@ -35,7 +60,7 @@ w `Program.cs` i przed wdrożeniem produkcyjnym należy je zaostrzyć.
 MKS.DeepWater.slnx
 src/MKS.DeepWater.Web/
   Program.cs                 # konfiguracja: SQLite, Identity, globalne [Authorize], routing
-  appsettings.json           # connection string + konto startowe (SeedAdmin)
+  appsettings.json           # connection string (SeedAdmin poza repozytorium)
   Data/
     ApplicationDbContext.cs  # DbContext (Identity + domena), indeksy, mapowanie decimal->double
     ApplicationUser.cs       # konto użytkownika obsługi
@@ -74,7 +99,7 @@ Relacje: `Member 1—* Address`, `Member 1—* FeePayment` (kaskadowe usuwanie).
 Zrealizowane (definition of done):
 - projekt się buduje (`dotnet build` – 0 błędów, 0 ostrzeżeń),
 - cała aplikacja wymaga zalogowania, anonim jest przekierowany na `/Account/Login`,
-- logowanie `admin` / `admin` działa,
+- logowanie kontem startowym (`SeedAdmin`) działa,
 - po zalogowaniu widoczny szablon z jedną zakładką **Lista członków** (dane z bazy,
   filtr: szukaj / status / rok składkowy, kolumna wpłat za wybrany rok).
 
@@ -83,7 +108,7 @@ Kolejne kroki (model danych i baza są już przygotowane):
 - rejestracja wpłat składek i zestawienie wpłat dla członka,
 - raporty: zaległości składkowe za rok (na podstawie `FeeRate` i `SharesCount`),
   lista adresowa do korespondencji, eksport do CSV/XLSX,
-- zarządzanie kontami użytkowników i podział uprawnień między role
+- zarządzanie kontami użytkowników, zmiana własnego hasła i podział uprawnień między role
   `Administrator` / `Pracownik`.
 
 ## Migracje
