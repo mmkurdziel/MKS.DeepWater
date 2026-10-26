@@ -27,6 +27,34 @@ Pełna analiza techniczna i uzasadnienie decyzji: <https://claude.ai/code/artifa
   Wybór płatnej bramki to zadanie 12, przy wdrożeniu produkcyjnym.
 - Role: `Administrator`, `Dostęp rozszerzony`, `Dostęp ograniczony`. Jedna rola na konto.
 
+## Standardy kodu
+
+Obowiązują w **każdym** zadaniu — są częścią „Ukończone, gdy”, nawet jeśli nie są tam wypisane.
+Nowy kod pisany od razu zgodnie z listą; przy dotykaniu istniejącego pliku braki nadrabiane
+w zakresie, który i tak jest zmieniany, bez rozszerzania zadania na cały projekt.
+
+1. **Bez blokowania async.** Żadnego `.Result`, `.Wait()`, `async void`,
+   `GetAwaiter().GetResult()`. `await` nieprzerwanie od akcji kontrolera w dół.
+2. **Bez N+1 i zapytań w pętli.** Projekcja `Select` z podzapytaniami skorelowanymi zamiast
+   pętli z `await` w środku; `Include` tam, gdzie potrzebny cały graf.
+   *Świadomy wyjątek:* `DbInitializer` zakłada role w pętli — kilka iteracji raz przy starcie.
+3. **`CancellationToken` wszędzie.** Parametr akcji kontrolera i przekazanie go do każdego
+   wywołania EF (`ToListAsync`, `FirstOrDefaultAsync`, `AnyAsync`, `SaveChangesAsync`) oraz do
+   `HttpClient`. Każdy nowy kontroler dostaje test refleksyjny na wzór
+   `Kazda_akcja_async_ma_parametr_CancellationToken` — nowa akcja bez tokenu ma zapalić test,
+   nie przejść niezauważona.
+   *Świadome wyjątki:* `DbInitializer` (biegnie przy starcie, nie w żądaniu) oraz te metody
+   Identity, które nie mają przeciążenia z tokenem.
+4. **Bez pustych `catch`.** `catch` wyłącznie z filtrem `when` i realną obsługą; wyjątki
+   nieprzewidziane muszą lecieć dalej. Anulowanie (`OperationCanceledException`) nie jest
+   błędem do połknięcia.
+5. **Żadnego endpointu bez autoryzacji.** Domyślnie zamknięte globalnym `AuthorizeFilter`,
+   każde `[AllowAnonymous]` świadome i policzalne, każda akcja `POST`
+   z `[ValidateAntiForgeryToken]`.
+6. **Żadnych danych wrażliwych w logach.** Bez numerów telefonu, kodów SMS, PESEL-i, haseł
+   i tokenów. Numer telefonu jest w tej aplikacji loginem, więc maskowanie (`600***200`) jest
+   obowiązkowe — **najpóźniej w zadaniu 7**, razem z nową ścieżką logowania, nie w zadaniu 10.
+
 ## Stan realizacji
 
 | # | Zadanie | Status |
@@ -61,7 +89,7 @@ istnieć przed pierwszą linią kodu produkcyjnego.
 - Asercje: wbudowane `Assert` z xUnit. **Bez FluentAssertions** — wersje 8+ mają licencję
   komercyjną, a projekt nie potrzebuje niczego ponad standard.
 - Dodanie projektu do `MKS.DeepWater.slnx`.
-- Helper `TestDb.CreateContext()` tworzący `ApplicationDbContext` na **SQLite in-memory**
+- Helper `TestDb.Create()` tworzący `ApplicationDbContext` na **SQLite in-memory**
   (`Microsoft.Data.Sqlite` z `Data Source=:memory:`, otwarte połączenie trzymane przez czas testu).
   Nie `EF Core InMemory`: ten provider **nie wymusza unikalnych indeksów** i nie zwraca
   `SqliteException 19`, więc testy z zadania 3 dałyby fałszywą zieloność.
@@ -70,7 +98,7 @@ istnieć przed pierwszą linią kodu produkcyjnego.
 
 - `tests/MKS.DeepWater.Web.Tests/MKS.DeepWater.Web.Tests.csproj`
 - `tests/MKS.DeepWater.Web.Tests/TestDb.cs`
-- `tests/MKS.DeepWater.Web.Tests/SmokeTests.cs`
+- `tests/MKS.DeepWater.Web.Tests/TestDbTests.cs`
 - `MKS.DeepWater.slnx` (modyfikacja)
 
 **Testy jednostkowe**
@@ -371,6 +399,9 @@ z limitem prób i limitem wysyłki. Najważniejsze testy w całym projekcie.
   członkiem).
 - Nieudana weryfikacja → `AccessFailedAsync` (lockout z polityki Identity).
 - `AddRateLimiter` na endpointach logowania: limit per IP obok limitu per numer.
+- **Maskowanie numeru w logach** (`600***200`) — przeniesione tu z zadania 10: od tego zadania
+  loginem jest numer telefonu, więc `AccountController` zacząłby zapisywać dane osobowe
+  (standard 6). Kod SMS nie trafia do logu nigdy poza `Provider = "Log"`.
 - Widoki: `Login.cshtml` (pole 9 cyfr z prefiksem `+48`), `VerifyCode.cshtml`
   (`inputmode="numeric"`, `autocomplete="one-time-code"`, licznik ważności, „wyślij ponownie”
   po 60 s), `LoginAdmin.cshtml`.
@@ -396,6 +427,8 @@ z limitem prób i limitem wysyłki. Najważniejsze testy w całym projekcie.
 - `ReturnUrl_zewnetrzny_jest_odrzucany` — przekierowanie na listę członków
   (regresja istniejącego `SafeReturnUrl`).
 - `Logowanie_admina_haslem_dziala` — ścieżka hasłowa nietknięta.
+- `Maskowanie_numeru_zostawia_gwiazdki` — `600100200` → `600***200`.
+- `Log_nie_zawiera_pelnego_numeru_ani_kodu` — wpis z udanego logowania bez numeru i bez kodu.
 
 **Ukończone, gdy**
 
@@ -499,7 +532,6 @@ i podgląd zużycia wysyłki.
 
 - Encja `LoginAttempt`: kto, kiedy, skąd, z jakim skutkiem. Migracja.
 - Usuwanie wygasłych kodów przy starcie (`DbInitializer`).
-- Maskowanie numeru w logach (`600***200`).
 - Krótszy `ExpireTimeSpan` ciasteczka dla rół nieadministracyjnych.
 - `README.md`: logowanie numerem, role, konfiguracja bramki, uruchomienie testów.
 
@@ -516,7 +548,6 @@ i podgląd zużycia wysyłki.
 - `Udane_logowanie_zapisuje_wpis`.
 - `Nieudane_logowanie_zapisuje_wpis_z_przyczyna`.
 - `Audyt_nie_zapisuje_kodu`.
-- `Maskowanie_numeru_zostawia_szesc_gwiazdek` — `600100200` → `600***200`.
 - `Sprzatanie_usuwa_tylko_wygasle` — ważny kod zostaje.
 
 **Ukończone, gdy**
