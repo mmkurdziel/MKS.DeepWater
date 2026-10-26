@@ -28,7 +28,7 @@ Pełna analiza techniczna i uzasadnienie decyzji: <https://claude.ai/code/artifa
 
 | # | Zadanie | Status |
 |---|---|---|
-| 1 | Projekt testowy | ⬜ Oczekuje |
+| 1 | Projekt testowy | ✅ Zrobione |
 | 2 | `PhoneNumber` i walidator numeru | ⬜ Oczekuje |
 | 3 | Unikalność numeru w bazie | ⬜ Oczekuje |
 | 4 | Role i powiązanie konta z członkiem | ⬜ Oczekuje |
@@ -45,7 +45,7 @@ Pełna analiza techniczna i uzasadnienie decyzji: <https://claude.ai/code/artifa
 
 ### Zadanie 1 — Projekt testowy
 
-**Status:** ⬜ Oczekuje
+**Status:** ✅ Zrobione (2026-10-26, gałąź `zadanie-01-projekt-testowy`)
 
 **Cel.** Każde następne zadanie kończy się zielonym `dotnet test`, więc miejsce na testy musi
 istnieć przed pierwszą linią kodu produkcyjnego.
@@ -72,16 +72,31 @@ istnieć przed pierwszą linią kodu produkcyjnego.
 
 **Testy jednostkowe**
 
-- `TestDb_tworzy_baze_z_migracjami` — kontekst wstaje, `Members` jest puste.
+- `TestDb_tworzy_baze_z_migracjami` — kontekst wstaje, `Members` i `Users` są puste.
+- `TestDb_ma_unikalny_indeks_w_schemacie` — `sqlite_master` zawiera
+  `IX_Members_MembershipNumber` ze słowem `UNIQUE`.
 - `TestDb_wymusza_unikalny_indeks` — dwa rekordy z tym samym `MembershipNumber` dają
-  `DbUpdateException` z `SqliteErrorCode 19`. To test samego narzędzia testowego: dowodzi, że
-  sonda potrafi dać wynik negatywny.
+  `DbUpdateException` z `SqliteErrorCode 19`.
+- `Bez_indeksu_ten_sam_numer_przechodzi` — kontrola negatywna: po `DROP INDEX` ten sam zapis
+  przechodzi i w bazie są dwa rekordy.
 
 **Ukończone, gdy**
 
-- [ ] `dotnet build` — 0 błędów, 0 ostrzeżeń
-- [ ] `dotnet test` — wszystkie zielone
-- [ ] test unikalności faktycznie czerwieni się po usunięciu `.IsUnique()` (sprawdzone ręcznie raz)
+- [x] `dotnet build` — 0 błędów, 0 ostrzeżeń
+- [x] `dotnet test` — 4/4 zielone
+- [x] sonda potrafi dać wynik negatywny — dowiedzione automatycznie przez
+      `Bez_indeksu_ten_sam_numer_przechodzi`
+
+**Zrealizowano inaczej, niż planowano.** Pierwotny warunek brzmiał „test unikalności czerwieni się
+po usunięciu `.IsUnique()` z `OnModelCreating`, sprawdzone ręcznie raz”. To nie działa: schemat
+bazy testowej powstaje z **migracji**, a nie z modelu, więc zmiana w `OnModelCreating` nie zdejmuje
+indeksu z już zmigrowanej bazy. Kontrola negatywna robi to poprawnie — zdejmuje indeks z bazy
+(`DROP INDEX`) i sprawdza, że zapis wtedy przechodzi. Dodatkowo doszedł test odczytujący definicję
+indeksu z `sqlite_master`, który wykryje brak migracji albo utratę indeksu.
+
+**Pakiety faktycznie użyte:** `Microsoft.NET.Test.Sdk` 17.14.1, `xunit` 2.9.3,
+`xunit.runner.visualstudio` 3.1.4, `Microsoft.EntityFrameworkCore.Sqlite` 10.0.13.
+`coverlet.collector` ze szablonu usunięty — nieużywany.
 
 ---
 

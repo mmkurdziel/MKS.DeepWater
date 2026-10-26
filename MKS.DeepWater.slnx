@@ -2,4 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/MKS.DeepWater.Web/MKS.DeepWater.Web.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/MKS.DeepWater.Web.Tests/MKS.DeepWater.Web.Tests.csproj" />
+  </Folder>
 </Solution>
