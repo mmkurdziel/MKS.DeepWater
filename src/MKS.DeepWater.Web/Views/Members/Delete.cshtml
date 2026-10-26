@@ -1,7 +1,6 @@
 @model Member
 @{
     ViewData["Title"] = "Usunięcie członka";
-    var address = Model.Addresses.OrderBy(a => a.Type).FirstOrDefault();
 }
 
 <nav aria-label="breadcrumb">
@@ -16,7 +15,7 @@
         <h1 class="h4 mb-3">Usunąć tego członka z ewidencji?</h1>
 
         <div class="alert alert-warning" role="alert">
-            Usunięcie jest <strong>miękkie</strong> – dane członka, jego adresy i wpłaty składek
+            Usunięcie jest <strong>miękkie</strong> – dane członka i jego wpłaty składek
             zostają w bazie, a rekord znika tylko z listy. Można go przywrócić akcją
             <em>Przywróć</em> po zaznaczeniu filtra „pokaż usunięte”.
         </div>
@@ -33,23 +32,14 @@
                 <span class="badge @Model.Status.BadgeCss()">@Model.Status.Label()</span>
             </dd>
 
-            <dt class="col-sm-4">Data przyjęcia</dt>
-            <dd class="col-sm-8">@Model.JoinDate.ToString("yyyy-MM-dd")</dd>
-
             <dt class="col-sm-4">Liczba udziałów</dt>
             <dd class="col-sm-8">@Model.SharesCount</dd>
 
             <dt class="col-sm-4">Adres</dt>
-            <dd class="col-sm-8">@(address?.SingleLine ?? "—")</dd>
+            <dd class="col-sm-8">@(string.IsNullOrWhiteSpace(Model.AddressLine) ? "—" : Model.AddressLine)</dd>
 
-            <dt class="col-sm-4">Kontakt</dt>
-            <dd class="col-sm-8">
-                @(Model.PhoneNumber ?? "—")
-                @if (!string.IsNullOrWhiteSpace(Model.Email))
-                {
-                    <br />@Model.Email
-                }
-            </dd>
+            <dt class="col-sm-4">Telefon</dt>
+            <dd class="col-sm-8">@(Model.PhoneNumber ?? "—")</dd>
         </dl>
 
         <form asp-action="Delete" asp-route-id="@Model.Id" method="post" class="d-flex gap-2">

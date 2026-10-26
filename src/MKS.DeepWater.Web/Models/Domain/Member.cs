@@ -2,7 +2,10 @@ using System.ComponentModel.DataAnnotations;
 
 namespace MKS.DeepWater.Web.Models.Domain;
 
-/// <summary>Członek spółki - dane podstawowe.</summary>
+/// <summary>
+/// Członek spółki. Spółka nie zbiera PESEL-u, e-maila, daty urodzenia ani dat
+/// przyjęcia i ustania członkostwa - tych pól świadomie nie ma w modelu.
+/// </summary>
 public class Member
 {
     public int Id { get; set; }
@@ -19,26 +22,23 @@ public class Member
     [Display(Name = "Nazwisko")]
     public string LastName { get; set; } = string.Empty;
 
-    [StringLength(11)]
-    [Display(Name = "PESEL")]
-    public string? NationalId { get; set; }
-
-    [StringLength(254), EmailAddress]
-    [Display(Name = "E-mail")]
-    public string? Email { get; set; }
-
     [StringLength(30), Phone]
     [Display(Name = "Telefon")]
     public string? PhoneNumber { get; set; }
 
-    [Display(Name = "Data urodzenia")]
-    public DateOnly? BirthDate { get; set; }
+    // --- Adres: jeden na członka, wprost na rekordzie (bez osobnej tabeli) ---
 
-    [Display(Name = "Data przyjęcia")]
-    public DateOnly JoinDate { get; set; }
+    [StringLength(150)]
+    [Display(Name = "Ulica")]
+    public string? Street { get; set; }
 
-    [Display(Name = "Data ustania członkostwa")]
-    public DateOnly? LeaveDate { get; set; }
+    [StringLength(20)]
+    [Display(Name = "Nr domu")]
+    public string? HouseNumber { get; set; }
+
+    [StringLength(100)]
+    [Display(Name = "Miejscowość")]
+    public string? City { get; set; }
 
     [Display(Name = "Status")]
     public MemberStatus Status { get; set; } = MemberStatus.Active;
@@ -61,9 +61,29 @@ public class Member
 
     public bool IsDeleted => DeletedAt is not null;
 
-    public ICollection<Address> Addresses { get; set; } = new List<Address>();
     public ICollection<FeePayment> Payments { get; set; } = new List<FeePayment>();
 
     [Display(Name = "Imię i nazwisko")]
     public string FullName => $"{FirstName} {LastName}";
+
+    /// <summary>Adres w jednej linii - pusty string, gdy adresu nie podano.</summary>
+    [Display(Name = "Adres")]
+    public string AddressLine => FormatAddress(Street, HouseNumber, City);
+
+    /// <summary>
+    /// Składanie adresu w jednym miejscu, żeby lista członków i karta członka nie
+    /// rozjechały się w formatowaniu. Pomija części, których nie podano.
+    /// </summary>
+    public static string FormatAddress(string? street, string? houseNumber, string? city)
+    {
+        var line = string.Join(" ", new[] { street, houseNumber }
+            .Where(part => !string.IsNullOrWhiteSpace(part)));
+
+        if (string.IsNullOrWhiteSpace(city))
+        {
+            return line;
+        }
+
+        return string.IsNullOrWhiteSpace(line) ? city : $"{line}, {city}";
+    }
 }

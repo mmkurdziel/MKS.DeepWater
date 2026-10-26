@@ -13,7 +13,7 @@ Pełna analiza techniczna i uzasadnienie decyzji: <https://claude.ai/code/artifa
    Zielone testy nie są zgodą na scalenie, tylko warunkiem przedstawienia kodu do przeglądu.
 4. Po scaleniu: status na `✅ Zrobione`, data i skrót commita w nawiasie.
 5. Testy jednostkowe powstają **razem z kodem zadania**, nie w osobnym etapie na końcu.
-6. Zadania 11 i 12 nie mają testów jednostkowych (weryfikacja ręczna / decyzja wdrożeniowa) —
+6. Zadania 12 i 13 nie mają testów jednostkowych (weryfikacja ręczna / decyzja wdrożeniowa) —
    jest to zaznaczone jawnie, nie jest przeoczeniem.
 
 ## Ustalenia obowiązujące we wszystkich zadaniach
@@ -24,7 +24,7 @@ Pełna analiza techniczna i uzasadnienie decyzji: <https://claude.ai/code/artifa
 - Obsługiwane są tylko numery polskie.
 - Logowanie członka: numer → kod SMS (6 cyfr). Logowanie admina: login + hasło (zostaje na stałe).
 - Bramka na czas developmentu: **SMS Gate** (telefon z Androidem, tryb Local Server).
-  Wybór płatnej bramki to zadanie 12, przy wdrożeniu produkcyjnym.
+  Wybór płatnej bramki to zadanie 13, przy wdrożeniu produkcyjnym.
 - Role: `Administrator`, `Dostęp rozszerzony`, `Dostęp ograniczony`. Jedna rola na konto.
 
 ## Standardy kodu
@@ -53,24 +53,25 @@ w zakresie, który i tak jest zmieniany, bez rozszerzania zadania na cały proje
    z `[ValidateAntiForgeryToken]`.
 6. **Żadnych danych wrażliwych w logach.** Bez numerów telefonu, kodów SMS, PESEL-i, haseł
    i tokenów. Numer telefonu jest w tej aplikacji loginem, więc maskowanie (`600***200`) jest
-   obowiązkowe — **najpóźniej w zadaniu 7**, razem z nową ścieżką logowania, nie w zadaniu 10.
+   obowiązkowe — **najpóźniej w zadaniu 8**, razem z nową ścieżką logowania, nie w zadaniu 11.
 
 ## Stan realizacji
 
 | # | Zadanie | Status |
 |---|---|---|
 | 1 | Projekt testowy | ✅ Zrobione |
-| 2 | `PhoneNumber` i walidator numeru | ⬜ Oczekuje |
-| 3 | Unikalność numeru w bazie | ⬜ Oczekuje |
-| 4 | Role i powiązanie konta z członkiem | ⬜ Oczekuje |
-| 5 | `ISmsSender` i SMS Gate | ⬜ Oczekuje |
-| 6 | `LoginCode` i `LoginCodeService` | ⬜ Oczekuje |
-| 7 | Ekrany logowania | ⬜ Oczekuje |
-| 8 | Panel administratora | ⬜ Oczekuje |
-| 9 | „Moje dane” | ⬜ Oczekuje |
-| 10 | Utwardzenie i audyt | ⬜ Oczekuje |
-| 11 | SMS Gate na środowisku dev | ⬜ Oczekuje |
-| 12 | Wybór płatnej bramki | ⬜ Oczekuje |
+| 2 | Uporządkowanie modelu członka | ⬜ Oczekuje |
+| 3 | `PhoneNumber` i walidator numeru | ⬜ Oczekuje |
+| 4 | Unikalność numeru w bazie | ⬜ Oczekuje |
+| 5 | Role i powiązanie konta z członkiem | ⬜ Oczekuje |
+| 6 | `ISmsSender` i SMS Gate | ⬜ Oczekuje |
+| 7 | `LoginCode` i `LoginCodeService` | ⬜ Oczekuje |
+| 8 | Ekrany logowania | ⬜ Oczekuje |
+| 9 | Panel administratora | ⬜ Oczekuje |
+| 10 | „Moje dane” | ⬜ Oczekuje |
+| 11 | Utwardzenie i audyt | ⬜ Oczekuje |
+| 12 | SMS Gate na środowisku dev | ⬜ Oczekuje |
+| 13 | Wybór płatnej bramki | ⬜ Oczekuje |
 
 ---
 
@@ -92,7 +93,7 @@ istnieć przed pierwszą linią kodu produkcyjnego.
 - Helper `TestDb.Create()` tworzący `ApplicationDbContext` na **SQLite in-memory**
   (`Microsoft.Data.Sqlite` z `Data Source=:memory:`, otwarte połączenie trzymane przez czas testu).
   Nie `EF Core InMemory`: ten provider **nie wymusza unikalnych indeksów** i nie zwraca
-  `SqliteException 19`, więc testy z zadania 3 dałyby fałszywą zieloność.
+  `SqliteException 19`, więc testy z zadania 4 dałyby fałszywą zieloność.
 
 **Pliki**
 
@@ -131,7 +132,66 @@ indeksu z `sqlite_master`, który wykryje brak migracji albo utratę indeksu.
 
 ---
 
-### Zadanie 2 — `PhoneNumber` i walidator numeru
+### Zadanie 2 — Uporządkowanie modelu członka
+
+**Status:** ⬜ Oczekuje
+
+**Cel.** Model odzwierciedla dane, które spółka faktycznie zbiera. Wykonane **przed** pracą nad
+numerem telefonu, żeby zadania 3 i 4 nie przepisywały pól, które zaraz znikają.
+
+**Zakres**
+
+- Usunięcie z `Member`: `NationalId` (PESEL), `Email`, `BirthDate`, `JoinDate`, `LeaveDate` —
+  spółka tych danych nie zbiera.
+- Jeden adres na członka, wprost na rekordzie: `Street`, `HouseNumber`, `City`. Bez numeru lokalu,
+  kodu pocztowego i kraju.
+  **Konsekwencja do świadomego przyjęcia:** bez kodu pocztowego nie da się wysłać korespondencji
+  listownej.
+- Usunięcie encji `Address`, enuma `AddressType`, `DbSet<Address>`, filtru zapytań na adresach
+  i helpera `PrimaryAddress`.
+- `Member.FormatAddress` i `AddressLine` — składanie adresu w jednym miejscu, z pominięciem
+  części, których nie podano.
+- `MemberListItem`: adres składany **po** odczycie z bazy, nie w zapytaniu — konkatenacja w SQL-u
+  z wartościami `NULL` dałaby pusty wynik dla adresu wpisanego częściowo.
+- Migracja `SimplifyMemberModel`: nowe kolumny → **przeniesienie adresu podstawowego**
+  (`ORDER BY Type, Id LIMIT 1`) → usunięcie tabeli `Addresses` i zbędnych kolumn. Kolejność jest
+  istotna: odwrotna gubi adresy.
+- `MemberStatus` zostaje bez zmian (`Active` / `Suspended` / `Former`) — status członkostwa
+  nie zależał od `LeaveDate`.
+
+**Pliki**
+
+- `src/MKS.DeepWater.Web/Data/Migrations/…_SimplifyMemberModel.cs`
+- `tests/MKS.DeepWater.Web.Tests/MemberModelTests.cs`
+- (mod) `Models/Domain/Member.cs`, `Models/Domain/Enums.cs`
+- (mod) `Models/ViewModels/MemberFormViewModel.cs`, `MemberListViewModel.cs`
+- (mod) `Data/ApplicationDbContext.cs`, `Data/DbInitializer.cs`
+- (mod) `Controllers/MembersController.cs`
+- (mod) `Views/Members/_MemberForm.cshtml`, `Index.cshtml`, `Delete.cshtml`
+- (usunięte) `Models/Domain/Address.cs`
+
+**Testy jednostkowe**
+
+- `Tabela_czlonkow_nie_ma_usunietej_kolumny` — 5 przypadków, po jednym na usunięte pole;
+  czytane z `sqlite_master`, nie z modelu C#.
+- `Tabela_adresow_nie_istnieje`.
+- `Adres_zapisuje_sie_na_rekordzie_czlonka` — zapis i odczyt drugim kontekstem.
+- `AddressLine_pomija_brakujace_czesci` — 5 przypadków, w tym sam adres bez miejscowości
+  i sama miejscowość.
+- `Niekompletny_adres_jest_odrzucany` — podana tylko ulica → błędy na `HouseNumber` i `City`.
+- `Pusty_adres_jest_dozwolony`, `Kompletny_adres_przechodzi_walidacje`.
+- `Lista_czlonkow_pokazuje_adres_z_pol_rekordu` — przez `MembersController.Index`.
+
+**Ukończone, gdy**
+
+- [ ] `dotnet build` — 0 błędów, 0 ostrzeżeń
+- [ ] `dotnet test` — wszystkie zielone
+- [ ] migracja sprawdzona na **kopii** istniejącej bazy: adresy przeniesione, usunięte kolumny
+      i tabela `Addresses` nie istnieją
+
+---
+
+### Zadanie 3 — `PhoneNumber` i walidator numeru
 
 **Status:** ⬜ Oczekuje
 
@@ -176,7 +236,7 @@ Czysta logika, bez bazy — najtańsze do przetestowania i podstawa wszystkiego 
 
 ---
 
-### Zadanie 3 — Unikalność numeru w bazie
+### Zadanie 4 — Unikalność numeru w bazie
 
 **Status:** ⬜ Oczekuje
 
@@ -228,7 +288,7 @@ miękko usuniętych rekordów i niemożliwym do wpisania w złym formacie.
 
 ---
 
-### Zadanie 4 — Role i powiązanie konta z członkiem
+### Zadanie 5 — Role i powiązanie konta z członkiem
 
 **Status:** ⬜ Oczekuje
 
@@ -279,7 +339,7 @@ hasłem — ten etap nie dotyka uwierzytelniania.
 
 ---
 
-### Zadanie 5 — `ISmsSender` i SMS Gate
+### Zadanie 6 — `ISmsSender` i SMS Gate
 
 **Status:** ⬜ Oczekuje
 
@@ -332,7 +392,7 @@ hasłem — ten etap nie dotyka uwierzytelniania.
 
 ---
 
-### Zadanie 6 — `LoginCode` i `LoginCodeService`
+### Zadanie 7 — `LoginCode` i `LoginCodeService`
 
 **Status:** ⬜ Oczekuje
 
@@ -383,7 +443,7 @@ z limitem prób i limitem wysyłki. Najważniejsze testy w całym projekcie.
 
 ---
 
-### Zadanie 7 — Ekrany logowania
+### Zadanie 8 — Ekrany logowania
 
 **Status:** ⬜ Oczekuje
 
@@ -399,7 +459,7 @@ z limitem prób i limitem wysyłki. Najważniejsze testy w całym projekcie.
   członkiem).
 - Nieudana weryfikacja → `AccessFailedAsync` (lockout z polityki Identity).
 - `AddRateLimiter` na endpointach logowania: limit per IP obok limitu per numer.
-- **Maskowanie numeru w logach** (`600***200`) — przeniesione tu z zadania 10: od tego zadania
+- **Maskowanie numeru w logach** (`600***200`) — przeniesione tu z zadania 11: od tego zadania
   loginem jest numer telefonu, więc `AccountController` zacząłby zapisywać dane osobowe
   (standard 6). Kod SMS nie trafia do logu nigdy poza `Provider = "Log"`.
 - Widoki: `Login.cshtml` (pole 9 cyfr z prefiksem `+48`), `VerifyCode.cshtml`
@@ -438,7 +498,7 @@ z limitem prób i limitem wysyłki. Najważniejsze testy w całym projekcie.
 
 ---
 
-### Zadanie 8 — Panel administratora
+### Zadanie 9 — Panel administratora
 
 **Status:** ⬜ Oczekuje
 
@@ -486,7 +546,7 @@ i podgląd zużycia wysyłki.
 
 ---
 
-### Zadanie 9 — „Moje dane”
+### Zadanie 10 — „Moje dane”
 
 **Status:** ⬜ Oczekuje
 
@@ -522,7 +582,7 @@ i podgląd zużycia wysyłki.
 
 ---
 
-### Zadanie 10 — Utwardzenie i audyt
+### Zadanie 11 — Utwardzenie i audyt
 
 **Status:** ⬜ Oczekuje
 
@@ -558,7 +618,7 @@ i podgląd zużycia wysyłki.
 
 ---
 
-### Zadanie 11 — SMS Gate na środowisku dev
+### Zadanie 12 — SMS Gate na środowisku dev
 
 **Status:** ⬜ Oczekuje
 
@@ -585,7 +645,7 @@ i podgląd zużycia wysyłki.
 
 ---
 
-### Zadanie 12 — Wybór płatnej bramki
+### Zadanie 13 — Wybór płatnej bramki
 
 **Status:** ⬜ Oczekuje
 
@@ -607,11 +667,11 @@ gdy znany będzie realny wolumen logowań i kto ponosi koszt.
 
 **Testy jednostkowe**
 
-- Ten sam zestaw co w zadaniu 5, dla nowego providera: ścieżka, numer z kierunkowym,
+- Ten sam zestaw co w zadaniu 6, dla nowego providera: ścieżka, numer z kierunkowym,
   uwierzytelnianie, guardy, timeout, odczyt identyfikatora wiadomości.
 
 **Ukończone, gdy**
 
 - [ ] `dotnet test` — wszystkie zielone
-- [ ] próba uruchomienia produkcji z `Provider = "Log"` **przerywa start** (guard z zadania 5)
+- [ ] próba uruchomienia produkcji z `Provider = "Log"` **przerywa start** (guard z zadania 6)
 - [ ] SMS testowy dociera przez produkcyjnego dostawcę

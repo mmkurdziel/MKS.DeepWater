@@ -73,7 +73,6 @@ public class TestDbTests
     {
         MembershipNumber = membershipNumber,
         FirstName = "Jan",
-        LastName = "Testowy",
-        JoinDate = new DateOnly(2020, 1, 1)
+        LastName = "Testowy"
     };
 }

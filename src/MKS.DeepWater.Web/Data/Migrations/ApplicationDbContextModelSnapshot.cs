@@ -84,54 +84,6 @@ namespace MKS.DeepWater.Web.Data.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("MKS.DeepWater.Web.Models.Domain.Address", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("ApartmentNumber")
-                        .HasMaxLength(20)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("City")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Country")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("HouseNumber")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("MemberId")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<string>("PostalCode")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Street")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MemberId");
-
-                    b.ToTable("Addresses");
-                });
-
             modelBuilder.Entity("MKS.DeepWater.Web.Models.Domain.FeePayment", b =>
                 {
                     b.Property<int>("Id")
@@ -201,7 +153,8 @@ namespace MKS.DeepWater.Web.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<DateOnly?>("BirthDate")
+                    b.Property<string>("City")
+                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset>("CreatedAt")
@@ -214,16 +167,13 @@ namespace MKS.DeepWater.Web.Data.Migrations
                         .HasMaxLength(256)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("Email")
-                        .HasMaxLength(254)
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("FirstName")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateOnly>("JoinDate")
+                    b.Property<string>("HouseNumber")
+                        .HasMaxLength(20)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("LastName")
@@ -231,16 +181,9 @@ namespace MKS.DeepWater.Web.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
-                    b.Property<DateOnly?>("LeaveDate")
-                        .HasColumnType("TEXT");
-
                     b.Property<string>("MembershipNumber")
                         .IsRequired()
                         .HasMaxLength(20)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("NationalId")
-                        .HasMaxLength(11)
                         .HasColumnType("TEXT");
 
                     b.Property<string>("Notes")
@@ -256,6 +199,10 @@ namespace MKS.DeepWater.Web.Data.Migrations
 
                     b.Property<int>("Status")
                         .HasColumnType("INTEGER");
+
+                    b.Property<string>("Street")
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
 
                     b.Property<DateTimeOffset?>("UpdatedAt")
                         .HasColumnType("TEXT");
@@ -400,17 +347,6 @@ namespace MKS.DeepWater.Web.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("MKS.DeepWater.Web.Models.Domain.Address", b =>
-                {
-                    b.HasOne("MKS.DeepWater.Web.Models.Domain.Member", "Member")
-                        .WithMany("Addresses")
-                        .HasForeignKey("MemberId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Member");
-                });
-
             modelBuilder.Entity("MKS.DeepWater.Web.Models.Domain.FeePayment", b =>
                 {
                     b.HasOne("MKS.DeepWater.Web.Models.Domain.Member", "Member")
@@ -475,8 +411,6 @@ namespace MKS.DeepWater.Web.Data.Migrations
 
             modelBuilder.Entity("MKS.DeepWater.Web.Models.Domain.Member", b =>
                 {
-                    b.Navigation("Addresses");
-
                     b.Navigation("Payments");
                 });
 #pragma warning restore 612, 618

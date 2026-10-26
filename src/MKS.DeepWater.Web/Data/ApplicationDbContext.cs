@@ -11,7 +11,6 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
     }
 
     public DbSet<Member> Members => Set<Member>();
-    public DbSet<Address> Addresses => Set<Address>();
     public DbSet<FeePayment> FeePayments => Set<FeePayment>();
     public DbSet<FeeRate> FeeRates => Set<FeeRate>();
 
@@ -27,21 +26,10 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
             // Miękkie usuwanie: domyślnie żadne zapytanie nie widzi usuniętych rekordów.
             // Archiwum i przywracanie sięgają po nie przez IgnoreQueryFilters().
             e.HasQueryFilter(m => m.DeletedAt == null);
-            e.HasMany(m => m.Addresses)
-                .WithOne(a => a.Member!)
-                .HasForeignKey(a => a.MemberId)
-                .OnDelete(DeleteBehavior.Cascade);
             e.HasMany(m => m.Payments)
                 .WithOne(p => p.Member!)
                 .HasForeignKey(p => p.MemberId)
                 .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        builder.Entity<Address>(e =>
-        {
-            // Filtr dopasowany do Member - adres usuniętego członka nie wychodzi
-            // też z bezpośredniego zapytania o adresy.
-            e.HasQueryFilter(a => a.Member!.DeletedAt == null);
         });
 
         builder.Entity<FeePayment>(e =>

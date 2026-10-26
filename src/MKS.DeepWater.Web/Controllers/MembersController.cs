@@ -11,9 +11,6 @@ namespace MKS.DeepWater.Web.Controllers;
 [Authorize]
 public class MembersController : Controller
 {
-    /// <summary>Typ nadawany adresowi zakładanemu z formularza.</summary>
-    private const AddressType DefaultAddressType = AddressType.Registered;
-
     private readonly ApplicationDbContext _db;
 
     public MembersController(ApplicationDbContext db)
@@ -52,17 +49,12 @@ public class MembersController : Controller
                 Id = m.Id,
                 MembershipNumber = m.MembershipNumber,
                 FullName = m.FirstName + " " + m.LastName,
-                Email = m.Email,
                 PhoneNumber = m.PhoneNumber,
-                Address = m.Addresses
-                    .OrderBy(a => a.Type)
-                    .Select(a => a.Street + " " + a.HouseNumber +
-                                 (a.ApartmentNumber == null ? "" : "/" + a.ApartmentNumber) +
-                                 ", " + a.PostalCode + " " + a.City)
-                    .FirstOrDefault(),
+                Street = m.Street,
+                HouseNumber = m.HouseNumber,
+                City = m.City,
                 Status = m.Status,
                 SharesCount = m.SharesCount,
-                JoinDate = m.JoinDate,
                 PaidInSelectedYear = m.Payments
                     .Where(p => p.FeeYear == year)
                     .Sum(p => p.Amount),
@@ -81,10 +73,7 @@ public class MembersController : Controller
     }
 
     [HttpGet]
-    public IActionResult Create() => View(new MemberFormViewModel
-    {
-        JoinDate = DateOnly.FromDateTime(DateTime.Today)
-    });
+    public IActionResult Create() => View(new MemberFormViewModel());
 
     [HttpPost]
     [ValidateAntiForgeryToken]
@@ -115,9 +104,7 @@ public class MembersController : Controller
     [HttpGet]
     public async Task<IActionResult> Edit(int id, CancellationToken ct)
     {
-        var member = await _db.Members
-            .Include(m => m.Addresses)
-            .FirstOrDefaultAsync(m => m.Id == id, ct);
+        var member = await _db.Members.FirstOrDefaultAsync(m => m.Id == id, ct);
 
         if (member is null)
         {
@@ -136,9 +123,7 @@ public class MembersController : Controller
             return BadRequest();
         }
 
-        var member = await _db.Members
-            .Include(m => m.Addresses)
-            .FirstOrDefaultAsync(m => m.Id == id, ct);
+        var member = await _db.Members.FirstOrDefaultAsync(m => m.Id == id, ct);
 
         if (member is null)
         {
@@ -168,7 +153,6 @@ public class MembersController : Controller
     public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         var member = await _db.Members
-            .Include(m => m.Addresses)
             .AsNoTracking()
             .FirstOrDefaultAsync(m => m.Id == id, ct);
 
@@ -278,85 +262,33 @@ public class MembersController : Controller
         ModelState.AddModelError(nameof(MemberFormViewModel.MembershipNumber),
             "Ten numer członkowski jest już zajęty (sprawdź także usunięte rekordy).");
 
-    /// <summary>
-    /// Adres pokazywany na liście i obsługiwany przez formularz - ten sam wybór w obu miejscach,
-    /// żeby edycja nie pomijała adresu innego typu niż zameldowania.
-    /// </summary>
-    private static Address? PrimaryAddress(Member member) =>
-        member.Addresses.OrderBy(a => a.Type).FirstOrDefault();
-
-    private static MemberFormViewModel ToForm(Member member)
+    private static MemberFormViewModel ToForm(Member member) => new()
     {
-        var address = PrimaryAddress(member);
+        Id = member.Id,
+        MembershipNumber = member.MembershipNumber,
+        FirstName = member.FirstName,
+        LastName = member.LastName,
+        PhoneNumber = member.PhoneNumber,
+        Status = member.Status,
+        SharesCount = member.SharesCount,
+        Notes = member.Notes,
+        Street = member.Street,
+        HouseNumber = member.HouseNumber,
+        City = member.City
+    };
 
-        return new MemberFormViewModel
-        {
-            Id = member.Id,
-            MembershipNumber = member.MembershipNumber,
-            FirstName = member.FirstName,
-            LastName = member.LastName,
-            NationalId = member.NationalId,
-            Email = member.Email,
-            PhoneNumber = member.PhoneNumber,
-            BirthDate = member.BirthDate,
-            JoinDate = member.JoinDate,
-            LeaveDate = member.LeaveDate,
-            Status = member.Status,
-            SharesCount = member.SharesCount,
-            Notes = member.Notes,
-            Street = address?.Street,
-            HouseNumber = address?.HouseNumber,
-            ApartmentNumber = address?.ApartmentNumber,
-            PostalCode = address?.PostalCode,
-            City = address?.City,
-            Country = address?.Country ?? "Polska"
-        };
-    }
-
-    private void Apply(MemberFormViewModel form, Member member)
+    private static void Apply(MemberFormViewModel form, Member member)
     {
         member.MembershipNumber = form.MembershipNumber.Trim();
         member.FirstName = form.FirstName.Trim();
         member.LastName = form.LastName.Trim();
-        member.NationalId = Trimmed(form.NationalId);
-        member.Email = Trimmed(form.Email);
         member.PhoneNumber = Trimmed(form.PhoneNumber);
-        member.BirthDate = form.BirthDate;
-        member.JoinDate = form.JoinDate!.Value;
-        member.LeaveDate = form.LeaveDate;
         member.Status = form.Status;
         member.SharesCount = form.SharesCount;
         member.Notes = Trimmed(form.Notes);
-
-        ApplyAddress(form, member);
-    }
-
-    private void ApplyAddress(MemberFormViewModel form, Member member)
-    {
-        var address = PrimaryAddress(member);
-
-        if (!form.HasAddress)
-        {
-            if (address is not null)
-            {
-                _db.Addresses.Remove(address);
-            }
-
-            return;
-        }
-
-        if (address is null)
-        {
-            address = new Address { Type = DefaultAddressType };
-            member.Addresses.Add(address);
-        }
-
-        address.Street = form.Street!.Trim();
-        address.HouseNumber = form.HouseNumber!.Trim();
-        address.ApartmentNumber = Trimmed(form.ApartmentNumber);
-        address.PostalCode = form.PostalCode!.Trim();
-        address.City = form.City!.Trim();
-        address.Country = Trimmed(form.Country) ?? "Polska";
+        member.Street = Trimmed(form.Street);
+        member.HouseNumber = Trimmed(form.HouseNumber);
+        member.City = Trimmed(form.City);
     }
 
     private static string? Trimmed(string? value) =>

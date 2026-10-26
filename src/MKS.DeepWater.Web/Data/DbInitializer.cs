@@ -95,20 +95,12 @@ public static class DbInitializer
                 MembershipNumber = "001",
                 FirstName = "Anna",
                 LastName = "Kowalska",
-                Email = "anna.kowalska@example.com",
                 PhoneNumber = "600100200",
-                JoinDate = new DateOnly(year - 5, 3, 12),
                 Status = MemberStatus.Active,
                 SharesCount = 2,
-                Addresses =
-                {
-                    new Address
-                    {
-                        Type = AddressType.Registered,
-                        Street = "Morska", HouseNumber = "14", ApartmentNumber = "3",
-                        PostalCode = "81-001", City = "Gdynia"
-                    }
-                },
+                Street = "Morska",
+                HouseNumber = "14",
+                City = "Gdynia",
                 Payments =
                 {
                     new FeePayment
@@ -123,20 +115,12 @@ public static class DbInitializer
                 MembershipNumber = "002",
                 FirstName = "Marek",
                 LastName = "Nowak",
-                Email = "marek.nowak@example.com",
                 PhoneNumber = "601300400",
-                JoinDate = new DateOnly(year - 2, 9, 1),
                 Status = MemberStatus.Active,
                 SharesCount = 1,
-                Addresses =
-                {
-                    new Address
-                    {
-                        Type = AddressType.Registered,
-                        Street = "Leśna", HouseNumber = "7",
-                        PostalCode = "80-180", City = "Gdańsk"
-                    }
-                }
+                Street = "Leśna",
+                HouseNumber = "7",
+                City = "Gdańsk"
             },
             new Member
             {
@@ -144,19 +128,11 @@ public static class DbInitializer
                 FirstName = "Ewa",
                 LastName = "Wiśniewska",
                 PhoneNumber = "602500600",
-                JoinDate = new DateOnly(year - 9, 6, 30),
-                LeaveDate = new DateOnly(year - 1, 12, 31),
                 Status = MemberStatus.Former,
                 SharesCount = 1,
-                Addresses =
-                {
-                    new Address
-                    {
-                        Type = AddressType.Correspondence,
-                        Street = "Polna", HouseNumber = "22",
-                        PostalCode = "84-200", City = "Wejherowo"
-                    }
-                }
+                Street = "Polna",
+                HouseNumber = "22",
+                City = "Wejherowo"
             });
 
         await db.SaveChangesAsync();

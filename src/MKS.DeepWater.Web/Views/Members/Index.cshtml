@@ -56,9 +56,8 @@
                 <th>Nr</th>
                 <th>Imię i nazwisko</th>
                 <th>Adres</th>
-                <th>Kontakt</th>
+                <th>Telefon</th>
                 <th class="text-center">Udziały</th>
-                <th>Od</th>
                 <th>Status</th>
                 <th class="text-end">Wpłaty @Model.FeeYear</th>
                 <th class="text-end"><span class="visually-hidden">Akcje</span></th>
@@ -68,7 +67,7 @@
         @if (Model.TotalCount == 0)
         {
             <tr>
-                <td colspan="9" class="text-center text-muted py-4">Brak członków spełniających kryteria.</td>
+                <td colspan="8" class="text-center text-muted py-4">Brak członków spełniających kryteria.</td>
             </tr>
         }
         else
@@ -84,16 +83,9 @@
                             <span class="badge text-bg-danger ms-1">Usunięty</span>
                         }
                     </td>
-                    <td class="small">@member.Address</td>
-                    <td class="small">
-                        @member.PhoneNumber
-                        @if (!string.IsNullOrWhiteSpace(member.Email))
-                        {
-                            <br /><span class="text-muted">@member.Email</span>
-                        }
-                    </td>
+                    <td class="small">@member.AddressLine</td>
+                    <td class="small">@member.PhoneNumber</td>
                     <td class="text-center">@member.SharesCount</td>
-                    <td class="small">@member.JoinDate.ToString("yyyy-MM-dd")</td>
                     <td><span class="badge @member.Status.BadgeCss()">@member.Status.Label()</span></td>
                     <td class="text-end">@member.PaidInSelectedYear.ToString("N2") zł</td>
                     <td class="text-end">

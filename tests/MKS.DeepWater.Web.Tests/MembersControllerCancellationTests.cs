@@ -54,8 +54,7 @@ public class MembersControllerCancellationTests
         {
             MembershipNumber = "001",
             FirstName = "Jan",
-            LastName = "Testowy",
-            JoinDate = new DateOnly(2020, 1, 1)
+            LastName = "Testowy"
         });
         await db.Context.SaveChangesAsync(CancellationToken.None);
 
