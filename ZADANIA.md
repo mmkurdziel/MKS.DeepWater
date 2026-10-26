@@ -143,10 +143,9 @@ numerem telefonu, żeby zadania 3 i 4 nie przepisywały pól, które zaraz znika
 
 - Usunięcie z `Member`: `NationalId` (PESEL), `Email`, `BirthDate`, `JoinDate`, `LeaveDate` —
   spółka tych danych nie zbiera.
-- Jeden adres na członka, wprost na rekordzie: `Street`, `HouseNumber`, `City`. Bez numeru lokalu,
-  kodu pocztowego i kraju.
-  **Konsekwencja do świadomego przyjęcia:** bez kodu pocztowego nie da się wysłać korespondencji
-  listownej.
+- Jeden adres na członka, wprost na rekordzie: `Street`, `HouseNumber`, `PostalCode`, `City`.
+  Bez numeru lokalu i kraju. Kod pocztowy walidowany wzorcem `^\d{2}-\d{3}$` i wymagany razem
+  z resztą adresu - bez niego nie da się wysłać korespondencji listownej.
 - Usunięcie encji `Address`, enuma `AddressType`, `DbSet<Address>`, filtru zapytań na adresach
   i helpera `PrimaryAddress`.
 - `Member.FormatAddress` i `AddressLine` — składanie adresu w jednym miejscu, z pominięciem
@@ -154,8 +153,8 @@ numerem telefonu, żeby zadania 3 i 4 nie przepisywały pól, które zaraz znika
 - `MemberListItem`: adres składany **po** odczycie z bazy, nie w zapytaniu — konkatenacja w SQL-u
   z wartościami `NULL` dałaby pusty wynik dla adresu wpisanego częściowo.
 - Migracja `SimplifyMemberModel`: nowe kolumny → **przeniesienie adresu podstawowego**
-  (`ORDER BY Type, Id LIMIT 1`) → usunięcie tabeli `Addresses` i zbędnych kolumn. Kolejność jest
-  istotna: odwrotna gubi adresy.
+  (`ORDER BY Type, Id LIMIT 1`, razem z kodem pocztowym) → usunięcie tabeli `Addresses`
+  i zbędnych kolumn. Kolejność jest istotna: odwrotna gubi adresy.
 - `MemberStatus` zostaje bez zmian (`Active` / `Suspended` / `Former`) — status członkostwa
   nie zależał od `LeaveDate`.
 
@@ -176,9 +175,12 @@ numerem telefonu, żeby zadania 3 i 4 nie przepisywały pól, które zaraz znika
   czytane z `sqlite_master`, nie z modelu C#.
 - `Tabela_adresow_nie_istnieje`.
 - `Adres_zapisuje_sie_na_rekordzie_czlonka` — zapis i odczyt drugim kontekstem.
-- `AddressLine_pomija_brakujace_czesci` — 5 przypadków, w tym sam adres bez miejscowości
-  i sama miejscowość.
-- `Niekompletny_adres_jest_odrzucany` — podana tylko ulica → błędy na `HouseNumber` i `City`.
+- `AddressLine_pomija_brakujace_czesci` — 7 przypadków układu polskiego
+  („Morska 14, 81-001 Gdynia"), w tym sam adres bez miejscowości, sam kod z miejscowością
+  i pusty adres.
+- `Niekompletny_adres_jest_odrzucany` — podana tylko ulica → błędy na `HouseNumber`,
+  `PostalCode` i `City`.
+- `Sam_kod_pocztowy_wymaga_reszty_adresu` — wpisanie samego kodu uruchamia regułę kompletności.
 - `Pusty_adres_jest_dozwolony`, `Kompletny_adres_przechodzi_walidacje`.
 - `Lista_czlonkow_pokazuje_adres_z_pol_rekordu` — przez `MembersController.Index`.
 

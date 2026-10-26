@@ -20,6 +20,7 @@ public class MemberListItem
     public string? PhoneNumber { get; init; }
     public string? Street { get; init; }
     public string? HouseNumber { get; init; }
+    public string? PostalCode { get; init; }
     public string? City { get; init; }
     public MemberStatus Status { get; init; }
     public int SharesCount { get; init; }
@@ -31,5 +32,5 @@ public class MemberListItem
     /// Adres składany po odczycie z bazy, nie w zapytaniu: konkatenacja w SQL-u z wartościami
     /// NULL dałaby pusty wynik dla adresu wpisanego tylko częściowo.
     /// </summary>
-    public string AddressLine => Member.FormatAddress(Street, HouseNumber, City);
+    public string AddressLine => Member.FormatAddress(Street, HouseNumber, PostalCode, City);
 }

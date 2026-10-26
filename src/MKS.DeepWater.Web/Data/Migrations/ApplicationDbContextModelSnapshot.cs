@@ -194,6 +194,10 @@ namespace MKS.DeepWater.Web.Data.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("TEXT");
 
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
                     b.Property<int>("SharesCount")
                         .HasColumnType("INTEGER");
 

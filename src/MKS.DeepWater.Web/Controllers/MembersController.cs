@@ -52,6 +52,7 @@ public class MembersController : Controller
                 PhoneNumber = m.PhoneNumber,
                 Street = m.Street,
                 HouseNumber = m.HouseNumber,
+                PostalCode = m.PostalCode,
                 City = m.City,
                 Status = m.Status,
                 SharesCount = m.SharesCount,
@@ -274,6 +275,7 @@ public class MembersController : Controller
         Notes = member.Notes,
         Street = member.Street,
         HouseNumber = member.HouseNumber,
+        PostalCode = member.PostalCode,
         City = member.City
     };
 
@@ -288,6 +290,7 @@ public class MembersController : Controller
         member.Notes = Trimmed(form.Notes);
         member.Street = Trimmed(form.Street);
         member.HouseNumber = Trimmed(form.HouseNumber);
+        member.PostalCode = Trimmed(form.PostalCode);
         member.City = Trimmed(form.City);
     }
 

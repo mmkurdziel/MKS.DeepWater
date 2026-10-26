@@ -53,6 +53,11 @@ public class MemberFormViewModel
     [Display(Name = "Nr domu")]
     public string? HouseNumber { get; set; }
 
+    [StringLength(10, ErrorMessage = "Kod pocztowy może mieć maksymalnie 10 znaków.")]
+    [RegularExpression(@"^\d{2}-\d{3}$", ErrorMessage = "Kod pocztowy ma format 00-000.")]
+    [Display(Name = "Kod pocztowy")]
+    public string? PostalCode { get; set; }
+
     [StringLength(100, ErrorMessage = "Miejscowość może mieć maksymalnie 100 znaków.")]
     [Display(Name = "Miejscowość")]
     public string? City { get; set; }
@@ -61,6 +66,7 @@ public class MemberFormViewModel
     public bool HasAddress =>
         !string.IsNullOrWhiteSpace(Street) ||
         !string.IsNullOrWhiteSpace(HouseNumber) ||
+        !string.IsNullOrWhiteSpace(PostalCode) ||
         !string.IsNullOrWhiteSpace(City);
 
     /// <summary>
@@ -83,6 +89,11 @@ public class MemberFormViewModel
         if (string.IsNullOrWhiteSpace(HouseNumber))
         {
             yield return new ValidationResult("Podaj numer domu.", new[] { nameof(HouseNumber) });
+        }
+
+        if (string.IsNullOrWhiteSpace(PostalCode))
+        {
+            yield return new ValidationResult("Podaj kod pocztowy.", new[] { nameof(PostalCode) });
         }
 
         if (string.IsNullOrWhiteSpace(City))

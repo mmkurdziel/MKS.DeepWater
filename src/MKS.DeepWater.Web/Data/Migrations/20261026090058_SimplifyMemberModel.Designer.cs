@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MKS.DeepWater.Web.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20261026085253_SimplifyMemberModel")]
+    [Migration("20261026090058_SimplifyMemberModel")]
     partial class SimplifyMemberModel
     {
         /// <inheritdoc />
@@ -195,6 +195,10 @@ namespace MKS.DeepWater.Web.Data.Migrations
 
                     b.Property<string>("PhoneNumber")
                         .HasMaxLength(30)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(10)
                         .HasColumnType("TEXT");
 
                     b.Property<int>("SharesCount")

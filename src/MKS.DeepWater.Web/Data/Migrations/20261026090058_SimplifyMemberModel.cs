@@ -28,6 +28,13 @@ namespace MKS.DeepWater.Web.Data.Migrations
                 nullable: true);
 
             migrationBuilder.AddColumn<string>(
+                name: "PostalCode",
+                table: "Members",
+                type: "TEXT",
+                maxLength: 10,
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
                 name: "City",
                 table: "Members",
                 type: "TEXT",
@@ -35,12 +42,14 @@ namespace MKS.DeepWater.Web.Data.Migrations
                 nullable: true);
 
             // Przeniesienie adresu podstawowego (najniższy Type = zameldowania) na rekord członka.
-            // Nr lokalu, kod pocztowy i kraj przepadają - spółka tych danych nie zbiera.
+            // Nr lokalu i kraj przepadają - spółka tych danych nie zbiera.
             migrationBuilder.Sql(@"
                 UPDATE Members SET
                     Street = (SELECT a.Street FROM Addresses a
                               WHERE a.MemberId = Members.Id ORDER BY a.Type, a.Id LIMIT 1),
                     HouseNumber = (SELECT a.HouseNumber FROM Addresses a
+                              WHERE a.MemberId = Members.Id ORDER BY a.Type, a.Id LIMIT 1),
+                    PostalCode = (SELECT a.PostalCode FROM Addresses a
                               WHERE a.MemberId = Members.Id ORDER BY a.Type, a.Id LIMIT 1),
                     City = (SELECT a.City FROM Addresses a
                               WHERE a.MemberId = Members.Id ORDER BY a.Type, a.Id LIMIT 1)
@@ -79,6 +88,10 @@ namespace MKS.DeepWater.Web.Data.Migrations
 
             migrationBuilder.DropColumn(
                 name: "HouseNumber",
+                table: "Members");
+
+            migrationBuilder.DropColumn(
+                name: "PostalCode",
                 table: "Members");
 
             migrationBuilder.DropColumn(

@@ -36,6 +36,10 @@ public class Member
     [Display(Name = "Nr domu")]
     public string? HouseNumber { get; set; }
 
+    [StringLength(10)]
+    [Display(Name = "Kod pocztowy")]
+    public string? PostalCode { get; set; }
+
     [StringLength(100)]
     [Display(Name = "Miejscowość")]
     public string? City { get; set; }
@@ -68,22 +72,21 @@ public class Member
 
     /// <summary>Adres w jednej linii - pusty string, gdy adresu nie podano.</summary>
     [Display(Name = "Adres")]
-    public string AddressLine => FormatAddress(Street, HouseNumber, City);
+    public string AddressLine => FormatAddress(Street, HouseNumber, PostalCode, City);
 
     /// <summary>
     /// Składanie adresu w jednym miejscu, żeby lista członków i karta członka nie
     /// rozjechały się w formatowaniu. Pomija części, których nie podano.
+    /// Układ polski: "Morska 14, 81-001 Gdynia".
     /// </summary>
-    public static string FormatAddress(string? street, string? houseNumber, string? city)
+    public static string FormatAddress(string? street, string? houseNumber,
+        string? postalCode, string? city)
     {
-        var line = string.Join(" ", new[] { street, houseNumber }
-            .Where(part => !string.IsNullOrWhiteSpace(part)));
-
-        if (string.IsNullOrWhiteSpace(city))
-        {
-            return line;
-        }
-
-        return string.IsNullOrWhiteSpace(line) ? city : $"{line}, {city}";
+        var ulica = Join(" ", street, houseNumber);
+        var miejscowosc = Join(" ", postalCode, city);
+        return Join(", ", ulica, miejscowosc);
     }
+
+    private static string Join(string separator, params string?[] parts) =>
+        string.Join(separator, parts.Where(part => !string.IsNullOrWhiteSpace(part)));
 }

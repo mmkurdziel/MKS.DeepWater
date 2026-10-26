@@ -50,6 +50,7 @@ public class MemberModelTests
             LastName = "Kowalska",
             Street = "Morska",
             HouseNumber = "14",
+            PostalCode = "81-001",
             City = "Gdynia"
         });
         db.Context.SaveChanges();
@@ -59,19 +60,22 @@ public class MemberModelTests
 
         Assert.Equal("Morska", member.Street);
         Assert.Equal("14", member.HouseNumber);
+        Assert.Equal("81-001", member.PostalCode);
         Assert.Equal("Gdynia", member.City);
     }
 
     [Theory]
-    [InlineData("Morska", "14", "Gdynia", "Morska 14, Gdynia")]
-    [InlineData("Morska", "14", null, "Morska 14")]
-    [InlineData(null, null, "Gdynia", "Gdynia")]
-    [InlineData("Morska", null, "Gdynia", "Morska, Gdynia")]
-    [InlineData(null, null, null, "")]
+    [InlineData("Morska", "14", "81-001", "Gdynia", "Morska 14, 81-001 Gdynia")]
+    [InlineData("Morska", "14", null, null, "Morska 14")]
+    [InlineData(null, null, "81-001", "Gdynia", "81-001 Gdynia")]
+    [InlineData(null, null, null, "Gdynia", "Gdynia")]
+    [InlineData("Morska", "14", null, "Gdynia", "Morska 14, Gdynia")]
+    [InlineData("Morska", null, "81-001", "Gdynia", "Morska, 81-001 Gdynia")]
+    [InlineData(null, null, null, null, "")]
     public void AddressLine_pomija_brakujace_czesci(
-        string? street, string? houseNumber, string? city, string oczekiwany)
+        string? street, string? houseNumber, string? postalCode, string? city, string oczekiwany)
     {
-        Assert.Equal(oczekiwany, Member.FormatAddress(street, houseNumber, city));
+        Assert.Equal(oczekiwany, Member.FormatAddress(street, houseNumber, postalCode, city));
     }
 
     [Fact]
@@ -83,8 +87,23 @@ public class MemberModelTests
         var bledy = form.GetRuleViolations().SelectMany(v => v.MemberNames).ToList();
 
         Assert.Contains(nameof(MemberFormViewModel.HouseNumber), bledy);
+        Assert.Contains(nameof(MemberFormViewModel.PostalCode), bledy);
         Assert.Contains(nameof(MemberFormViewModel.City), bledy);
         Assert.DoesNotContain(nameof(MemberFormViewModel.Street), bledy);
+    }
+
+    [Fact]
+    public void Sam_kod_pocztowy_wymaga_reszty_adresu()
+    {
+        var form = Form();
+        form.PostalCode = "81-001";
+
+        var bledy = form.GetRuleViolations().SelectMany(v => v.MemberNames).ToList();
+
+        Assert.Contains(nameof(MemberFormViewModel.Street), bledy);
+        Assert.Contains(nameof(MemberFormViewModel.HouseNumber), bledy);
+        Assert.Contains(nameof(MemberFormViewModel.City), bledy);
+        Assert.DoesNotContain(nameof(MemberFormViewModel.PostalCode), bledy);
     }
 
     [Fact]
@@ -99,6 +118,7 @@ public class MemberModelTests
         var form = Form();
         form.Street = "Morska";
         form.HouseNumber = "14";
+        form.PostalCode = "81-001";
         form.City = "Gdynia";
 
         Assert.Empty(form.GetRuleViolations());
@@ -115,6 +135,7 @@ public class MemberModelTests
             LastName = "Kowalska",
             Street = "Morska",
             HouseNumber = "14",
+            PostalCode = "81-001",
             City = "Gdynia"
         });
         await db.Context.SaveChangesAsync(CancellationToken.None);
@@ -124,7 +145,7 @@ public class MemberModelTests
                                             showDeleted: false, ct: CancellationToken.None);
 
         var model = Assert.IsType<MemberListViewModel>(Assert.IsType<ViewResult>(result).Model);
-        Assert.Equal("Morska 14, Gdynia", model.Items.Single().AddressLine);
+        Assert.Equal("Morska 14, 81-001 Gdynia", model.Items.Single().AddressLine);
     }
 
     private static MemberFormViewModel Form() => new()

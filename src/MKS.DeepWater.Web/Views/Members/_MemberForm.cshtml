@@ -66,7 +66,12 @@
                 <input asp-for="HouseNumber" class="form-control" />
                 <span asp-validation-for="HouseNumber" class="text-danger small"></span>
             </div>
-            <div class="col-12">
+            <div class="col-5">
+                <label asp-for="PostalCode" class="form-label"></label>
+                <input asp-for="PostalCode" class="form-control" placeholder="00-000" />
+                <span asp-validation-for="PostalCode" class="text-danger small"></span>
+            </div>
+            <div class="col-7">
                 <label asp-for="City" class="form-label"></label>
                 <input asp-for="City" class="form-control" />
                 <span asp-validation-for="City" class="text-danger small"></span>

@@ -100,6 +100,7 @@ public static class DbInitializer
                 SharesCount = 2,
                 Street = "Morska",
                 HouseNumber = "14",
+                PostalCode = "81-001",
                 City = "Gdynia",
                 Payments =
                 {
@@ -120,6 +121,7 @@ public static class DbInitializer
                 SharesCount = 1,
                 Street = "Leśna",
                 HouseNumber = "7",
+                PostalCode = "80-180",
                 City = "Gdańsk"
             },
             new Member
@@ -132,6 +134,7 @@ public static class DbInitializer
                 SharesCount = 1,
                 Street = "Polna",
                 HouseNumber = "22",
+                PostalCode = "84-200",
                 City = "Wejherowo"
             });
 
