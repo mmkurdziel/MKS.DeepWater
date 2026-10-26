@@ -1,4 +1,4 @@
-using MKS.DeepWater.Web.Data;
+﻿using MKS.DeepWater.Web.Data;
 using MKS.DeepWater.Web.Models.Domain;
 using MKS.DeepWater.Web.Models.ViewModels;
 using Microsoft.AspNetCore.Authorization;
@@ -21,7 +21,8 @@ public class MembersController : Controller
         _db = db;
     }
 
-    public async Task<IActionResult> Index(string? search, MemberStatus? status, int? feeYear, bool showDeleted = false)
+    public async Task<IActionResult> Index(string? search, MemberStatus? status, int? feeYear,
+        bool showDeleted = false, CancellationToken ct = default)
     {
         var year = feeYear ?? DateTime.Today.Year;
 
@@ -67,7 +68,7 @@ public class MembersController : Controller
                     .Sum(p => p.Amount),
                 DeletedAt = m.DeletedAt
             })
-            .ToListAsync();
+            .ToListAsync(ct);
 
         return View(new MemberListViewModel
         {
@@ -87,12 +88,12 @@ public class MembersController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(MemberFormViewModel form)
+    public async Task<IActionResult> Create(MemberFormViewModel form, CancellationToken ct)
     {
         ValidateRules(form);
         // Nowy rekord nie może wykluczać z kontroli unikalności żadnego Id - Id z formularza
         // przychodzi od klienta i wskazanie nim istniejącego członka obeszłoby walidację.
-        await ValidateMembershipNumberAsync(form.MembershipNumber, excludeId: 0);
+        await ValidateMembershipNumberAsync(form.MembershipNumber, excludeId: 0, ct);
         if (!ModelState.IsValid)
         {
             return View(form);
@@ -102,7 +103,7 @@ public class MembersController : Controller
         Apply(form, member);
         _db.Members.Add(member);
 
-        if (!await TrySaveAsync())
+        if (!await TrySaveAsync(ct))
         {
             return View(form);
         }
@@ -112,11 +113,11 @@ public class MembersController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Edit(int id)
+    public async Task<IActionResult> Edit(int id, CancellationToken ct)
     {
         var member = await _db.Members
             .Include(m => m.Addresses)
-            .FirstOrDefaultAsync(m => m.Id == id);
+            .FirstOrDefaultAsync(m => m.Id == id, ct);
 
         if (member is null)
         {
@@ -128,7 +129,7 @@ public class MembersController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, MemberFormViewModel form)
+    public async Task<IActionResult> Edit(int id, MemberFormViewModel form, CancellationToken ct)
     {
         if (id != form.Id)
         {
@@ -137,7 +138,7 @@ public class MembersController : Controller
 
         var member = await _db.Members
             .Include(m => m.Addresses)
-            .FirstOrDefaultAsync(m => m.Id == id);
+            .FirstOrDefaultAsync(m => m.Id == id, ct);
 
         if (member is null)
         {
@@ -145,7 +146,7 @@ public class MembersController : Controller
         }
 
         ValidateRules(form);
-        await ValidateMembershipNumberAsync(form.MembershipNumber, excludeId: id);
+        await ValidateMembershipNumberAsync(form.MembershipNumber, excludeId: id, ct);
         if (!ModelState.IsValid)
         {
             return View(form);
@@ -154,7 +155,7 @@ public class MembersController : Controller
         Apply(form, member);
         member.UpdatedAt = DateTimeOffset.UtcNow;
 
-        if (!await TrySaveAsync())
+        if (!await TrySaveAsync(ct))
         {
             return View(form);
         }
@@ -164,21 +165,21 @@ public class MembersController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Delete(int id)
+    public async Task<IActionResult> Delete(int id, CancellationToken ct)
     {
         var member = await _db.Members
             .Include(m => m.Addresses)
             .AsNoTracking()
-            .FirstOrDefaultAsync(m => m.Id == id);
+            .FirstOrDefaultAsync(m => m.Id == id, ct);
 
         return member is null ? NotFound() : View(member);
     }
 
     [HttpPost, ActionName(nameof(Delete))]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DeleteConfirmed(int id)
+    public async Task<IActionResult> DeleteConfirmed(int id, CancellationToken ct)
     {
-        var member = await _db.Members.FirstOrDefaultAsync(m => m.Id == id);
+        var member = await _db.Members.FirstOrDefaultAsync(m => m.Id == id, ct);
         if (member is null)
         {
             return NotFound();
@@ -186,7 +187,7 @@ public class MembersController : Controller
 
         member.DeletedAt = DateTimeOffset.UtcNow;
         member.DeletedBy = User.Identity?.Name;
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
         TempData["Message"] =
             $"Usunięto członka {member.FullName}. Dane zostały zachowane - rekord można przywrócić " +
@@ -196,11 +197,11 @@ public class MembersController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Restore(int id)
+    public async Task<IActionResult> Restore(int id, CancellationToken ct)
     {
         var member = await _db.Members
             .IgnoreQueryFilters()
-            .FirstOrDefaultAsync(m => m.Id == id);
+            .FirstOrDefaultAsync(m => m.Id == id, ct);
 
         if (member is null || member.DeletedAt is null)
         {
@@ -210,7 +211,7 @@ public class MembersController : Controller
         member.DeletedAt = null;
         member.DeletedBy = null;
         member.UpdatedAt = DateTimeOffset.UtcNow;
-        await _db.SaveChangesAsync();
+        await _db.SaveChangesAsync(ct);
 
         TempData["Message"] = $"Przywrócono członka {member.FullName}.";
         return RedirectToAction(nameof(Index), new { showDeleted = true });
@@ -220,7 +221,8 @@ public class MembersController : Controller
     /// Numer członkowski jest unikalny także wśród usuniętych rekordów.
     /// <paramref name="excludeId"/> pochodzi z serwera (0 dla nowego rekordu, Id z trasy przy edycji).
     /// </summary>
-    private async Task ValidateMembershipNumberAsync(string? membershipNumber, int excludeId)
+    private async Task ValidateMembershipNumberAsync(string? membershipNumber, int excludeId,
+        CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(membershipNumber))
         {
@@ -230,7 +232,7 @@ public class MembersController : Controller
         var number = membershipNumber.Trim();
         var taken = await _db.Members
             .IgnoreQueryFilters()
-            .AnyAsync(m => m.MembershipNumber == number && m.Id != excludeId);
+            .AnyAsync(m => m.MembershipNumber == number && m.Id != excludeId, ct);
 
         if (taken)
         {
@@ -254,11 +256,11 @@ public class MembersController : Controller
     /// Zapis z obsługą kolizji unikalnego numeru - wyścig dwóch osób wpisujących ten sam numer
     /// kończy się błędem walidacji, a nie wyjątkiem z indeksu bazy.
     /// </summary>
-    private async Task<bool> TrySaveAsync()
+    private async Task<bool> TrySaveAsync(CancellationToken ct)
     {
         try
         {
-            await _db.SaveChangesAsync();
+            await _db.SaveChangesAsync(ct);
             return true;
         }
         catch (DbUpdateException ex) when (IsMembershipNumberConflict(ex))
