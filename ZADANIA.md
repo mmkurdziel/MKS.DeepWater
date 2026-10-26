@@ -60,7 +60,7 @@ w zakresie, który i tak jest zmieniany, bez rozszerzania zadania na cały proje
 | # | Zadanie | Status |
 |---|---|---|
 | 1 | Projekt testowy | ✅ Zrobione |
-| 2 | Uporządkowanie modelu członka | ⬜ Oczekuje |
+| 2 | Uporządkowanie modelu członka | ✅ Zrobione |
 | 3 | `PhoneNumber` i walidator numeru | ⬜ Oczekuje |
 | 4 | Unikalność numeru w bazie | ⬜ Oczekuje |
 | 5 | Role i powiązanie konta z członkiem | ⬜ Oczekuje |
@@ -134,7 +134,7 @@ indeksu z `sqlite_master`, który wykryje brak migracji albo utratę indeksu.
 
 ### Zadanie 2 — Uporządkowanie modelu członka
 
-**Status:** ⬜ Oczekuje
+**Status:** ✅ Zrobione (2026-10-26, commity `d1c26f7`, `d34ab1f`)
 
 **Cel.** Model odzwierciedla dane, które spółka faktycznie zbiera. Wykonane **przed** pracą nad
 numerem telefonu, żeby zadania 3 i 4 nie przepisywały pól, które zaraz znikają.
@@ -186,10 +186,10 @@ numerem telefonu, żeby zadania 3 i 4 nie przepisywały pól, które zaraz znika
 
 **Ukończone, gdy**
 
-- [ ] `dotnet build` — 0 błędów, 0 ostrzeżeń
-- [ ] `dotnet test` — wszystkie zielone
-- [ ] migracja sprawdzona na **kopii** istniejącej bazy: adresy przeniesione, usunięte kolumny
-      i tabela `Addresses` nie istnieją
+- [x] `dotnet build` — 0 błędów, 0 ostrzeżeń
+- [x] `dotnet test` — 28/28 zielone
+- [x] migracja sprawdzona na **kopii** istniejącej bazy: adresy wraz z kodami pocztowymi
+      przeniesione, usunięte kolumny i tabela `Addresses` nie istnieją
 
 ---
 
