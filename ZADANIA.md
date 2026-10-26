@@ -8,9 +8,12 @@ Pełna analiza techniczna i uzasadnienie decyzji: <https://claude.ai/code/artifa
 1. Kolejne zadanie do realizacji = **pierwsze z góry ze statusem `⬜ Oczekuje`**.
 2. Zadanie jest ukończone wyłącznie wtedy, gdy spełnia **wszystkie** punkty z „Ukończone, gdy”,
    w tym `dotnet test` na zielono i `dotnet build` bez ostrzeżeń.
-3. Po ukończeniu: status na `✅ Zrobione`, data i skrót commita w nawiasie.
-4. Testy jednostkowe powstają **razem z kodem zadania**, nie w osobnym etapie na końcu.
-5. Zadania 11 i 12 nie mają testów jednostkowych (weryfikacja ręczna / decyzja wdrożeniowa) —
+3. Zadanie jest **zrobione dopiero po scaleniu do `main`**. Obieg: gałąź z `main` → praca →
+   zielony `dotnet test` → przegląd kodu przez właściciela repozytorium → scalenie i push.
+   Zielone testy nie są zgodą na scalenie, tylko warunkiem przedstawienia kodu do przeglądu.
+4. Po scaleniu: status na `✅ Zrobione`, data i skrót commita w nawiasie.
+5. Testy jednostkowe powstają **razem z kodem zadania**, nie w osobnym etapie na końcu.
+6. Zadania 11 i 12 nie mają testów jednostkowych (weryfikacja ręczna / decyzja wdrożeniowa) —
    jest to zaznaczone jawnie, nie jest przeoczeniem.
 
 ## Ustalenia obowiązujące we wszystkich zadaniach
