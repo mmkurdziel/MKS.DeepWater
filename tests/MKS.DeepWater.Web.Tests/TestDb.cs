@@ -1,6 +1,8 @@
 using MKS.DeepWater.Web.Data;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace MKS.DeepWater.Web.Tests;
 
@@ -29,16 +31,26 @@ public sealed class TestDb : IDisposable
     /// <summary>Kontekst do pracy w teście.</summary>
     public ApplicationDbContext Context { get; }
 
-    public static TestDb Create()
+    public static TestDb Create() => Create(targetMigration: null);
+
+    /// <summary>
+    /// Baza zmigrowana tylko do wskazanej migracji - do testów samej migracji danych:
+    /// wpisanie danych w starym schemacie, potem <see cref="MigrateTo"/>.
+    /// </summary>
+    public static TestDb Create(string? targetMigration)
     {
         var connection = new SqliteConnection("Data Source=:memory:");
         connection.Open();
 
         var context = NewContext(connection);
-        context.Database.Migrate();
+        context.GetService<IMigrator>().Migrate(targetMigration);
 
         return new TestDb(connection, context);
     }
+
+    /// <summary>Migracja w górę lub w dół; <c>null</c> oznacza najnowszą.</summary>
+    public void MigrateTo(string? targetMigration) =>
+        Context.GetService<IMigrator>().Migrate(targetMigration);
 
     /// <summary>
     /// Drugi kontekst na tej samej bazie - do sprawdzania, co faktycznie trafiło do bazy,
@@ -60,6 +72,14 @@ public sealed class TestDb : IDisposable
         using var command = _connection.CreateCommand();
         command.CommandText = sql;
         return command.ExecuteScalar() as string;
+    }
+
+    /// <summary>Odczytuje pojedynczą wartość dowolnego typu (null, gdy zapytanie nic nie zwróci).</summary>
+    public object? QueryScalar(string sql)
+    {
+        using var command = _connection.CreateCommand();
+        command.CommandText = sql;
+        return command.ExecuteScalar();
     }
 
     public void Dispose()

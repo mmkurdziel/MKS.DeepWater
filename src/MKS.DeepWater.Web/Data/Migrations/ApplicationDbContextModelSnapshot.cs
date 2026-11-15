@@ -90,8 +90,9 @@ namespace MKS.DeepWater.Web.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<double>("Amount")
-                        .HasColumnType("REAL");
+                    b.Property<long>("Amount")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("AmountGrosze");
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("TEXT");
@@ -129,8 +130,9 @@ namespace MKS.DeepWater.Web.Data.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<double>("AmountPerShare")
-                        .HasColumnType("REAL");
+                    b.Property<long>("AmountPerShare")
+                        .HasColumnType("INTEGER")
+                        .HasColumnName("AmountPerShareGrosze");
 
                     b.Property<string>("ResolutionReference")
                         .HasMaxLength(300)

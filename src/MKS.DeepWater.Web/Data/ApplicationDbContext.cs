@@ -36,14 +36,18 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser>
         {
             e.HasIndex(p => new { p.MemberId, p.FeeYear });
             e.HasQueryFilter(p => p.Member!.DeletedAt == null);
-            // SQLite nie ma typu decimal - mapowanie na double pozwala sumowac i sortowac w SQL.
-            e.Property(p => p.Amount).HasConversion<double>();
+            // Kolumna w groszach - nazwa mówi to wprost, żeby surowy SQL nie czytał jej jako złotych.
+            e.Property(p => p.Amount)
+                .HasConversion<GroszeConverter>()
+                .HasColumnName("AmountGrosze");
         });
 
         builder.Entity<FeeRate>(e =>
         {
             e.HasIndex(r => r.Year).IsUnique();
-            e.Property(r => r.AmountPerShare).HasConversion<double>();
+            e.Property(r => r.AmountPerShare)
+                .HasConversion<GroszeConverter>()
+                .HasColumnName("AmountPerShareGrosze");
         });
     }
 }

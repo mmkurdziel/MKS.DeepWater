@@ -1,11 +1,18 @@
-# Zadania: logowanie numerem telefonu i kodem SMS
+# Zadania
 
-Tracker realizacji. Zadania wykonywane są **po kolei**, po jednym na raz.
-Pełna analiza techniczna i uzasadnienie decyzji: <https://claude.ai/code/artifact/d96e286f-c209-422f-aa87-0dce55742560>
+Tracker realizacji. Dwie niezależne ścieżki:
+
+- **Zadania 1–13 — logowanie numerem telefonu i kodem SMS.** Pełna analiza techniczna
+  i uzasadnienie decyzji: <https://claude.ai/code/artifact/d96e286f-c209-422f-aa87-0dce55742560>
+- **Zadania I-1 – I-8 — import wyciągów bankowych** (sekcja na końcu pliku). Analiza:
+  `Dokumentacja/Import-wyciagow.md` – świadomie poza repozytorium, powstała na pliku
+  z prawdziwymi danymi członków.
+
+W obrębie ścieżki zadania wykonywane są **po kolei**, po jednym na raz.
 
 ## Jak korzystać z tego pliku
 
-1. Kolejne zadanie do realizacji = **pierwsze z góry ze statusem `⬜ Oczekuje`**.
+1. Kolejne zadanie do realizacji = **pierwsze z góry ze statusem `⬜ Oczekuje`** w danej ścieżce.
 2. Zadanie jest ukończone wyłącznie wtedy, gdy spełnia **wszystkie** punkty z „Ukończone, gdy”,
    w tym `dotnet test` na zielono i `dotnet build` bez ostrzeżeń.
 3. Zadanie jest **zrobione dopiero po scaleniu do `main`**. Obieg: gałąź z `main` → praca →
@@ -677,3 +684,144 @@ gdy znany będzie realny wolumen logowań i kto ponosi koszt.
 - [ ] `dotnet test` — wszystkie zielone
 - [ ] próba uruchomienia produkcji z `Provider = "Log"` **przerywa start** (guard z zadania 6)
 - [ ] SMS testowy dociera przez produkcyjnego dostawcę
+
+---
+
+## Ścieżka I — import wyciągów bankowych
+
+Administrator wgrywa eksport historii operacji z bankowości (CSV, 20 kolumn, bez nagłówka).
+Wiersze trafiają do pamięci, wątpliwości są pokazywane i poprawiane na ekranie, potem
+uznania zapisują się w tabeli **Wpłaty**, a obciążenia w nowej tabeli **Obciążenia**.
+
+### Ustalenia ścieżki
+
+- Import wyłącznie dla roli `Administrator`.
+- Dopasowanie członka: automat z oceną pewności + potwierdzenie przez użytkownika.
+  Źródła: zapamiętany rachunek nadawcy, nazwisko w polu nadawcy **i w tytule**,
+  adres obecny lub dawny.
+- Osoba w tytule przelewu = udział; należna składka = `FeeRate.AmountPerShare × SharesCount`.
+- Członek ma adres obecny i **dawny** (przed zmianą numeracji) – dawny służy tylko do dopasowania.
+- Uznania niebędące składką (woda, faktury, zaległości) zapisują się w Wpłatach z polem
+  **Rodzaj** i nie liczą się do składek należnych.
+- Dane z wyciągów nie trafiają do repozytorium ani do logów. Dane testowe są fikcyjne.
+
+### Stan realizacji
+
+| # | Zadanie | Status |
+|---|---|---|
+| I-1 | Dokładne przechowywanie kwot | 🔄 W przeglądzie |
+| I-2 | Model danych importu | ⬜ Oczekuje |
+| I-3 | Lista wpłat i lista obciążeń | ⬜ Oczekuje |
+| I-4 | Parser eksportu bankowego | ⬜ Oczekuje |
+| I-5 | Okres, rodzaj wpłaty, kategoria obciążenia | ⬜ Oczekuje |
+| I-6 | Dopasowanie członka | ⬜ Oczekuje |
+| I-7 | Ekran wgrania i weryfikacji | ⬜ Oczekuje |
+| I-8 | Zapis importu | ⬜ Oczekuje |
+
+---
+
+### Zadanie I-1 — Dokładne przechowywanie kwot
+
+**Status:** 🔄 W przeglądzie (gałąź `import-01-kwoty`)
+
+**Cel.** Import zapisuje i porównuje kwoty hurtowo („kwota = stawka × udziały”), więc kwoty
+w bazie muszą być dokładne. Dotąd `decimal` był mapowany na `double` (`REAL`).
+
+**Zakres**
+
+- `GroszeConverter`: `decimal` (złote) ↔ `long` (grosze). Kwota z ułamkiem grosza → wyjątek,
+  nie ciche zaokrąglenie.
+- Kolumny `FeePayments.AmountGrosze` i `FeeRates.AmountPerShareGrosze` (`INTEGER`). Nazwa
+  kolumny mówi o groszach wprost, żeby surowy SQL nie czytał jej jako złotych.
+- Migracja `MoneyAsGrosze`: przeliczenie `ROUND(x * 100)` **przed** zmianą typu (sama zmiana
+  typu zapisałaby 480,00 zł jako 480 groszy), `Down` dzieli z powrotem przez 100.
+- `TestDb.Create(targetMigration)`, `MigrateTo`, `QueryScalar` – do testów migracji danych.
+
+**Pliki**
+
+- `src/MKS.DeepWater.Web/Data/GroszeConverter.cs`
+- `src/MKS.DeepWater.Web/Data/Migrations/…_MoneyAsGrosze.cs`
+- `tests/MKS.DeepWater.Web.Tests/MoneyTests.cs`
+- (mod) `Data/ApplicationDbContext.cs`, `ApplicationDbContextModelSnapshot.cs`, `tests/…/TestDb.cs`
+
+**Testy jednostkowe**
+
+- `Kwota_przeliczana_na_grosze` (5 przypadków), `Kwota_z_ulamkiem_grosza_jest_odrzucana` (2).
+- `Kolumny_kwot_sa_calkowite_i_w_groszach` – definicja tabel z `sqlite_master`.
+- `Kwota_zapisuje_sie_w_bazie_jako_liczba_groszy` – `typeof()` i wartość surowa.
+- `Suma_wplat_liczona_w_SQL_jest_dokladna` – 1000 × 0,10 zł = 100 zł.
+- `Porownanie_wplaty_z_naleznoscia_w_SQL_jest_dokladne` – 0,10 zł × 3 udziały = 0,30 zł w SQL.
+- `Ta_sama_kontrola_na_REAL_daje_niezgodnosc` – kontrola negatywna.
+- `Lista_czlonkow_pokazuje_dokladna_sume_wplat_za_rok` – przez `MembersController.Index`.
+- `Migracja_przelicza_istniejace_kwoty_na_grosze` – m.in. 0,29 zł (w `double` 28,999… gr).
+- `Wycofanie_migracji_przywraca_kwoty_w_zlotych`.
+
+**Ukończone, gdy**
+
+- [x] `dotnet build` — 0 błędów, 0 ostrzeżeń
+- [x] `dotnet test` — 43/43 zielone
+- [x] migracja sprawdzona na **kopii** istniejącej bazy: 480,00 zł → 48000, 240,00 zł → 24000,
+      typ `integer`
+
+**Ustalenie w trakcie.** Sam `SUM` po kolumnie `REAL` nie pokazuje błędu: SQLite od 3.43 sumuje
+z kompensacją błędu, a rzutowanie `double` → `decimal` obcina do 15 cyfr znaczących. Realne
+ryzyko `double` to porównania z arytmetyką w SQL (`0.10 * 3 = 0.30` daje fałsz) – na tym
+oparty jest test kontrolny.
+
+---
+
+### Zadanie I-2 — Model danych importu
+
+**Status:** ⬜ Oczekuje
+
+**Zakres.** `ImportBatch` (plik, SHA-256, kto, kiedy, liczniki, sumy); `BankExpense`
+(obciążenia: daty, kwota, kategoria, odbiorca, rachunek, tytuł, saldo, odcisk – unikalny);
+`PayerAlias` (rachunek nadawcy → członek); rozszerzenie `FeePayment` o `Kind`, opcjonalny
+`FeeYear`, `ImportBatchId`, odcisk operacji (indeks nieunikalny – podział jednej operacji
+daje kilka wpłat), dane nadawcy i tytuł; dawny adres członka (`Former*`) z edycją na karcie.
+
+### Zadanie I-3 — Lista wpłat i lista obciążeń
+
+**Status:** ⬜ Oczekuje
+
+**Zakres.** Ekrany tylko do odczytu z filtrami (członek, rok, rodzaj, partia importu /
+kategoria, okres). Dziś w aplikacji nie ma żadnego ekranu wpłat.
+
+### Zadanie I-4 — Parser eksportu bankowego
+
+**Status:** ⬜ Oczekuje
+
+**Zakres.** Profil banku w `appsettings` (kolumny, separator, kodowanie, format daty);
+UTF-8 i Windows-1250; sklejanie linii po 35 znaków (segment pełny – bez spacji, krótszy –
+ze spacją); odcisk operacji (daty, kierunek, kwota, rachunek, tytuł, saldo); raport
+wierszy nieczytelnych.
+
+### Zadanie I-5 — Okres, rodzaj wpłaty, kategoria obciążenia
+
+**Status:** ⬜ Oczekuje
+
+**Zakres.** Wzorce okresu: rok, kilka lat, półrocze, kwartał, rata, brak okresu; rodzaj
+wpłaty ze słów kluczowych; kategoria obciążenia z konfigurowalnych wzorców tytułu.
+
+### Zadanie I-6 — Dopasowanie członka
+
+**Status:** ⬜ Oczekuje
+
+**Zakres.** Normalizacja tekstu, oba porządki imię/nazwisko, szukanie w polu nadawcy
+i w tytule, adres obecny i dawny, aliasy rachunków, podobna pisownia jako podpowiedź;
+ocena pewności i lista kandydatów. Jedno zapytanie na partię, bez zapytań w pętli.
+
+### Zadanie I-7 — Ekran wgrania i weryfikacji
+
+**Status:** ⬜ Oczekuje
+
+**Zakres.** Wgranie pliku (limit rozmiaru, rozszerzenie), partia w `IMemoryCache` (60 min,
+per użytkownik), zakładki Wpłaty / Obciążenia, błędy i ostrzeżenia, poprawki wiersza,
+podział operacji na kilka wpłat, filtr „tylko problemy”.
+
+### Zadanie I-8 — Zapis importu
+
+**Status:** ⬜ Oczekuje
+
+**Zakres.** Jedna transakcja, ponowna kontrola duplikatów przy zapisie, zapamiętywanie
+aliasów rachunków, `ImportBatch`, raport i historia importów.
