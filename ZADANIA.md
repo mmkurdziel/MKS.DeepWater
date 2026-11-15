@@ -4,7 +4,7 @@ Tracker realizacji. Dwie niezależne ścieżki:
 
 - **Zadania 1–13 — logowanie numerem telefonu i kodem SMS.** Pełna analiza techniczna
   i uzasadnienie decyzji: <https://claude.ai/code/artifact/d96e286f-c209-422f-aa87-0dce55742560>
-- **Zadania I-1 – I-8 — import wyciągów bankowych** (sekcja na końcu pliku). Analiza:
+- **Zadania I-1 – I-9 — import wyciągów bankowych** (sekcja na końcu pliku). Analiza:
   `Dokumentacja/Import-wyciagow.md` – świadomie poza repozytorium, powstała na pliku
   z prawdziwymi danymi członków.
 
@@ -710,13 +710,14 @@ uznania zapisują się w tabeli **Wpłaty**, a obciążenia w nowej tabeli **Obc
 | # | Zadanie | Status |
 |---|---|---|
 | I-1 | Dokładne przechowywanie kwot | 🔄 W przeglądzie |
-| I-2 | Model danych importu | ⬜ Oczekuje |
-| I-3 | Lista wpłat i lista obciążeń | ⬜ Oczekuje |
-| I-4 | Parser eksportu bankowego | ⬜ Oczekuje |
-| I-5 | Okres, rodzaj wpłaty, kategoria obciążenia | ⬜ Oczekuje |
-| I-6 | Dopasowanie członka | ⬜ Oczekuje |
-| I-7 | Ekran wgrania i weryfikacji | ⬜ Oczekuje |
-| I-8 | Zapis importu | ⬜ Oczekuje |
+| I-2 | Baza członków z wyciągu, usunięcie danych przykładowych | 🔄 W realizacji |
+| I-3 | Model danych importu | ⬜ Oczekuje |
+| I-4 | Lista wpłat i lista obciążeń | ⬜ Oczekuje |
+| I-5 | Parser eksportu bankowego | ⬜ Oczekuje |
+| I-6 | Okres, rodzaj wpłaty, kategoria obciążenia | ⬜ Oczekuje |
+| I-7 | Dopasowanie członka | ⬜ Oczekuje |
+| I-8 | Ekran wgrania i weryfikacji | ⬜ Oczekuje |
+| I-9 | Zapis importu | ⬜ Oczekuje |
 
 ---
 
@@ -770,7 +771,47 @@ oparty jest test kontrolny.
 
 ---
 
-### Zadanie I-2 — Model danych importu
+### Zadanie I-2 — Baza członków z wyciągu, usunięcie danych przykładowych
+
+**Status:** 🔄 W realizacji (gałąź `import-02-czlonkowie`, oparta na `import-01-kwoty`)
+
+**Cel.** W bazie są prawdziwi członkowie spółki, zanim powstanie import wpłat – dopasowanie
+z zadania I-7 nie ma do czego dopasowywać, dopóki baza członków jest pusta albo przykładowa.
+
+**Zakres**
+
+- `DbInitializer` nie wpisuje przykładowych członków, wpłat ani stawki – przy pustej bazie
+  wracałyby po każdym jej odtworzeniu. README zaktualizowane.
+- Usunięcie danych przykładowych z lokalnej bazy (członkowie, wpłaty, stawki). Konto
+  administratora i role zostają. Kopia bazy przed usunięciem w `App_Data/` (poza gitem).
+- **Jednorazowe, lokalne** założenie członków: lista kandydatów wyciągnięta z wyciągu do pliku
+  w `Dokumentacja/` (poza repozytorium) → poprawki właściciela → wczytanie do lokalnej bazy.
+  Numery członkowskie kolejne (001, 002…) w kolejności alfabetycznej nazwisk.
+- **Dane osobowe nie trafiają do repozytorium** – ani w kodzie, ani w migracji, ani w testach.
+
+**Pliki**
+
+- `tests/MKS.DeepWater.Web.Tests/DbInitializerTests.cs`
+- (mod) `Data/DbInitializer.cs`, `README.md`
+
+**Testy jednostkowe**
+
+- `Pusta_baza_nie_dostaje_przykladowych_danych` – po starcie brak członków, wpłat i stawek.
+- `Pusta_baza_dostaje_role_i_konto_administratora` – role i konto nadal zakładane.
+- Wczytanie listy członków: bez testów jednostkowych – operacja jednorazowa na lokalnej
+  bazie, weryfikowana ręcznie (liczba rekordów, unikalność numerów). Zaznaczone jawnie.
+
+**Ukończone, gdy**
+
+- [x] `dotnet build` — 0 błędów, 0 ostrzeżeń
+- [x] `dotnet test` — 45/45 zielone
+- [x] dane przykładowe usunięte z lokalnej bazy, kopia wykonana
+- [ ] lista kandydatów poprawiona przez właściciela
+- [ ] członkowie wczytani do lokalnej bazy, numery unikalne, liczba zgodna z listą
+
+---
+
+### Zadanie I-3 — Model danych importu
 
 **Status:** ⬜ Oczekuje
 
@@ -780,14 +821,14 @@ oparty jest test kontrolny.
 `FeeYear`, `ImportBatchId`, odcisk operacji (indeks nieunikalny – podział jednej operacji
 daje kilka wpłat), dane nadawcy i tytuł; dawny adres członka (`Former*`) z edycją na karcie.
 
-### Zadanie I-3 — Lista wpłat i lista obciążeń
+### Zadanie I-4 — Lista wpłat i lista obciążeń
 
 **Status:** ⬜ Oczekuje
 
 **Zakres.** Ekrany tylko do odczytu z filtrami (członek, rok, rodzaj, partia importu /
 kategoria, okres). Dziś w aplikacji nie ma żadnego ekranu wpłat.
 
-### Zadanie I-4 — Parser eksportu bankowego
+### Zadanie I-5 — Parser eksportu bankowego
 
 **Status:** ⬜ Oczekuje
 
@@ -796,14 +837,14 @@ UTF-8 i Windows-1250; sklejanie linii po 35 znaków (segment pełny – bez spac
 ze spacją); odcisk operacji (daty, kierunek, kwota, rachunek, tytuł, saldo); raport
 wierszy nieczytelnych.
 
-### Zadanie I-5 — Okres, rodzaj wpłaty, kategoria obciążenia
+### Zadanie I-6 — Okres, rodzaj wpłaty, kategoria obciążenia
 
 **Status:** ⬜ Oczekuje
 
 **Zakres.** Wzorce okresu: rok, kilka lat, półrocze, kwartał, rata, brak okresu; rodzaj
 wpłaty ze słów kluczowych; kategoria obciążenia z konfigurowalnych wzorców tytułu.
 
-### Zadanie I-6 — Dopasowanie członka
+### Zadanie I-7 — Dopasowanie członka
 
 **Status:** ⬜ Oczekuje
 
@@ -811,7 +852,7 @@ wpłaty ze słów kluczowych; kategoria obciążenia z konfigurowalnych wzorców
 i w tytule, adres obecny i dawny, aliasy rachunków, podobna pisownia jako podpowiedź;
 ocena pewności i lista kandydatów. Jedno zapytanie na partię, bez zapytań w pętli.
 
-### Zadanie I-7 — Ekran wgrania i weryfikacji
+### Zadanie I-8 — Ekran wgrania i weryfikacji
 
 **Status:** ⬜ Oczekuje
 
@@ -819,7 +860,7 @@ ocena pewności i lista kandydatów. Jedno zapytanie na partię, bez zapytań w 
 per użytkownik), zakładki Wpłaty / Obciążenia, błędy i ostrzeżenia, poprawki wiersza,
 podział operacji na kilka wpłat, filtr „tylko problemy”.
 
-### Zadanie I-8 — Zapis importu
+### Zadanie I-9 — Zapis importu
 
 **Status:** ⬜ Oczekuje
 

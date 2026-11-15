@@ -22,8 +22,10 @@ dotnet run --project src/MKS.DeepWater.Web
 Przy pierwszym starcie aplikacja sama:
 1. tworzy plik bazy `src/MKS.DeepWater.Web/App_Data/deepwater.db` i wykonuje migracje,
 2. zakłada role `Administrator` i `Pracownik`,
-3. zakłada konto startowe administratora na podstawie konfiguracji `SeedAdmin`,
-4. wpisuje 3 przykładowych członków z adresami i jedną wpłatą składki.
+3. zakłada konto startowe administratora na podstawie konfiguracji `SeedAdmin`.
+
+Przykładowych członków, wpłat ani stawek aplikacja nie wpisuje – baza zawiera wyłącznie
+prawdziwe dane spółki.
 
 ### Konto startowe (SeedAdmin)
 
@@ -64,7 +66,7 @@ src/MKS.DeepWater.Web/
   Data/
     ApplicationDbContext.cs  # DbContext (Identity + domena), indeksy, mapowanie decimal->double
     ApplicationUser.cs       # konto użytkownika obsługi
-    DbInitializer.cs         # migracje, role, konto admina, dane demo
+    DbInitializer.cs         # migracje, role, konto admina
     Migrations/              # migracje EF Core (InitialCreate)
   Models/
     Domain/                  # model danych: Member, Address, FeePayment, FeeRate, Enums

@@ -1,4 +1,3 @@
-using MKS.DeepWater.Web.Models.Domain;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
@@ -6,6 +5,8 @@ namespace MKS.DeepWater.Web.Data;
 
 /// <summary>
 /// Tworzy/aktualizuje plikową bazę SQLite i zakłada konto startowe administratora.
+/// Świadomie <b>nie</b> wpisuje przykładowych członków ani stawek - baza zawiera wyłącznie
+/// prawdziwe dane spółki, a przykłady przy pustej bazie wracałyby po każdym jej odtworzeniu.
 /// </summary>
 public static class DbInitializer
 {
@@ -65,79 +66,9 @@ public static class DbInitializer
         {
             await userManager.AddToRoleAsync(admin, AdminRole);
         }
-
-        await SeedDemoMembersAsync(db);
     }
 
     /// <summary>Wartość z konfiguracji albo domyślna - puste ustawienie traktujemy jak brak.</summary>
     private static string Value(string? configured, string fallback) =>
         string.IsNullOrWhiteSpace(configured) ? fallback : configured;
-
-    private static async Task SeedDemoMembersAsync(ApplicationDbContext db)
-    {
-        if (await db.Members.AnyAsync())
-        {
-            return;
-        }
-
-        var year = DateTime.Today.Year;
-
-        db.FeeRates.Add(new FeeRate
-        {
-            Year = year,
-            AmountPerShare = 240m,
-            ResolutionReference = $"Uchwała nr 1/{year} Zgromadzenia Członków"
-        });
-
-        db.Members.AddRange(
-            new Member
-            {
-                MembershipNumber = "001",
-                FirstName = "Anna",
-                LastName = "Kowalska",
-                PhoneNumber = "600100200",
-                Status = MemberStatus.Active,
-                SharesCount = 2,
-                Street = "Morska",
-                HouseNumber = "14",
-                PostalCode = "81-001",
-                City = "Gdynia",
-                Payments =
-                {
-                    new FeePayment
-                    {
-                        FeeYear = year, PaymentDate = new DateOnly(year, 1, 20),
-                        Amount = 480m, Method = PaymentMethod.Transfer, DocumentNumber = "WB/1/2026"
-                    }
-                }
-            },
-            new Member
-            {
-                MembershipNumber = "002",
-                FirstName = "Marek",
-                LastName = "Nowak",
-                PhoneNumber = "601300400",
-                Status = MemberStatus.Active,
-                SharesCount = 1,
-                Street = "Leśna",
-                HouseNumber = "7",
-                PostalCode = "80-180",
-                City = "Gdańsk"
-            },
-            new Member
-            {
-                MembershipNumber = "003",
-                FirstName = "Ewa",
-                LastName = "Wiśniewska",
-                PhoneNumber = "602500600",
-                Status = MemberStatus.Former,
-                SharesCount = 1,
-                Street = "Polna",
-                HouseNumber = "22",
-                PostalCode = "84-200",
-                City = "Wejherowo"
-            });
-
-        await db.SaveChangesAsync();
-    }
 }
